@@ -20,12 +20,12 @@ body {
   padding: .25em 1em;
   h1 {
     margin: 0;
+    user-select: none;
   }
 }
 
 #scene {
   margin: 0;
-  border: 1px solid #333;
   background: #fff;
 }
 

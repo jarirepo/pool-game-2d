@@ -5,7 +5,7 @@ export interface Color {
 };
 
 /**
- * Create the ball bodies
+ * Ball colors:
  * 0: white (cue-ball)
  * 1: yellow, 2: blue, 3: red, 4: purple, 5: orange, 6: green, 7: brown
  * 8: black
@@ -18,7 +18,7 @@ const colors: Color[] = [
   { r: 255, g: 0, b: 0 },
   { r: 128, g: 0, b: 128 },
   { r: 255, g: 165, b: 0 },
-  { r: 0, g: 255, b: 0 },
+  { r: 0, g: 128, b: 0 },
   { r: 165, g: 42, b: 42 },
   { r: 0, g: 0, b: 0 }
 ];
