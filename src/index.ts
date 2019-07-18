@@ -9,7 +9,7 @@ window['decomp'] = decomp;
 import { Ball } from './ball';
 import { Colors, Color } from './colors';
 
-const { random, PI } = Math;
+const { cos, PI, random, sin } = Math;
 const TWO_PI = 2 * PI;
 
 const stats = new Stats();
@@ -17,7 +17,7 @@ stats.showPanel( 0 ); // fps
 stats.dom.style.position = 'relative';
 document.querySelector('#stats').appendChild(stats.dom);
 
-const { Engine, World, Bodies } = Matter;
+const { Engine, World, Bodies, Mouse } = Matter;
 const engine = Engine.create();
 const world = engine.world;
 world.gravity.y = 0;
@@ -27,6 +27,8 @@ const ctx = canvas.getContext('2d');
 ctx.fillStyle = 'rgb(51, 51, 51)';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.globalAlpha = 1;
+
+const mouse = Mouse.create(canvas);
 
 /**
  * Create the ball bodies
@@ -38,11 +40,13 @@ ctx.globalAlpha = 1;
 const balls: Ball[] = [];
 const ballOptions: Matter.IBodyDefinition = {
   isStatic: false,
-  force: { x: 0, y: 0 },
-  friction: 0.1,
-  frictionAir: 0.01,
+  // force: { x: 0, y: 0 },
+  friction: 0,
+  frictionAir: .01,
   frictionStatic: 0,
+  restitution: 1,
   density: 1.7  // g/cm^3
+  // sleepThreshold: 30
 };
 const ballRadius = 57.15; // mm
 for (let i = 0; i < 16; i++) {
@@ -64,8 +68,11 @@ function mmult(P: number[][], T: number[][]): number[][] {
   }
   return Q;
 }
+
 const tableOptions: Matter.IBodyDefinition = {
-  isStatic: true
+  isStatic: true,
+  friction: .05,
+  restitution: 1
 };
 const tableLength = 7 * 0.3048e3; // ft -> mm
 const tableWidth = tableLength / 2;
@@ -107,6 +114,10 @@ Matter.Body.setPosition(tableSegments[4], { x: tableEdgeWidth / 2, y: 0.25 * tab
 Matter.Body.setPosition(tableSegments[5], { x: tableEdgeWidth / 2, y: 0.75 * tableLength });
 
 World.add(world, tableSegments);
+
+// Add the ball bodies to the world
+World.add(world, balls[0].body);
+// World.add(world, balls.map(b => b.body));
 
 // console.log(tableSegments[0].position, tableSegments[0].vertices);
 
@@ -179,16 +190,52 @@ const ballStyles = [
   { color: Colors.WHITE, texture: createBallTexture(15, Colors.BROWN) }
 ];
 
-ctx.fillStyle = '#333';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
+const scale = .333;
+const cueBall = balls[0];
+const maxForceMag = 500;
+let dragging = false;
 
+// Place the cue-ball on the cue-ball line on the pool table
+Matter.Body.setPosition(cueBall.body, {
+  x: tableWidth / 2 + (2 * random() -1) * ballRadius,
+  y: tableLength * 0.75
+});
+
+// TODO: Stack balls 1-15 in the triangular rack with ball #8 at the rack position
+
+// Start the physics engine
 Engine.run(engine);
 
-const scale = .333;
-
-function animate(time = 0) {
+function animate(time = 0) {  
   stats.begin();
 
+  // console.log(cueBall.body.speed, cueBall.body.isSleeping);
+
+  if (cueBall.body.speed < 1) {
+    // Matter.Body.setVelocity(cueBall.body, { x: 0, y: 0 });
+    if (!dragging) {
+      if (mouse.button === 0) { // left mouse button pressed
+        dragging = true;
+      }
+    } else {
+      if (mouse.button === -1) {  // mouse button released      
+        dragging = false;
+        const m: Matter.Vector = {
+          x: mouse.mouseupPosition.x / scale,
+          y: mouse.mouseupPosition.y / scale
+        };
+        const v = Matter.Vector.sub(cueBall.body.position, m);
+        const vn = Matter.Vector.normalise(v);
+        const f = Matter.Vector.mult(vn, maxForceMag);
+        Matter.Body.applyForce(cueBall.body, cueBall.body.position, f);
+        console.log('Applied force:', f);
+      }
+    }
+  }
+
+  ctx.fillStyle = '#333';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
   // Output textures for balls 1-15
   let index = 1;
   for (let i = 0; i < 5; i++) {
@@ -269,17 +316,33 @@ function animate(time = 0) {
   ctx.stroke();
 
   // Render the cue-ball
-  /*
-  const b = balls[0];
-  const px = .5 * canvas.width;
-  const py = .8 * canvas.height;
-  
   ctx.beginPath();
+  ctx.arc(scale * cueBall.body.position.x, scale * cueBall.body.position.y, scale * cueBall.radius, 0, TWO_PI);
   ctx.fillStyle = '#fff';
-  ctx.arc(px, py, scale * b.radius, 0, TWO_PI);
   ctx.fill();
-  */
- 
+
+  // Place the cue-ball on the cue-ball line
+  // ctx.beginPath();
+  // ctx.arc(scale * cueBall.body.position.x, scale * tableLength * 0.75, scale * cueBall.radius, 0, TWO_PI);
+  // ctx.fillStyle = '#fff';
+  // ctx.fill();
+
+  // Apply force to the cue-ball
+  // if (cueBall.body.speed < 1) {
+  //   Matter.Body.applyForce(cueBall.body,
+  //     { x: cueBall.body.position.x, y: cueBall.body.position.y },
+  //     { x: 5, y: 10 }
+  //   );
+  // }
+
+  if (dragging) {
+    ctx.beginPath();
+    ctx.moveTo(scale * cueBall.body.position.x, scale * cueBall.body.position.y);
+    ctx.lineTo(mouse.position.x, mouse.position.y);
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+  }
+
   stats.end();
   requestAnimationFrame(animate);
 }
