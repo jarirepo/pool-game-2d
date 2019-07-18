@@ -8,6 +8,7 @@ window['decomp'] = decomp;
 
 import { Ball } from './ball';
 import { Colors, Color } from './colors';
+import { Rack } from './rack';
 
 const { cos, PI, random, sin } = Math;
 const TWO_PI = 2 * PI;
@@ -50,7 +51,9 @@ const ballOptions: Matter.IBodyDefinition = {
 };
 const ballRadius = 57.15; // mm
 for (let i = 0; i < 16; i++) {
-  const r = (ballRadius + (2 * random() - 1) * .127) / 2;  // mm 
+  // const r = (ballRadius + (2 * random() - 1) * .127) / 2;  // mm 
+  // const r = ballRadius - random() * .127;  // mm
+  const r = ballRadius / 2;  // mm
   const b = Bodies.circle(0, 0, r, ballOptions);
   balls.push(new Ball(i, r, b));
 }
@@ -116,15 +119,15 @@ Matter.Body.setPosition(tableSegments[5], { x: tableEdgeWidth / 2, y: 0.75 * tab
 World.add(world, tableSegments);
 
 // Add the ball bodies to the world
-World.add(world, balls[0].body);
-// World.add(world, balls.map(b => b.body));
+// World.add(world, balls[0].body);
+World.add(world, balls.map(b => b.body));
 
 // console.log(tableSegments[0].position, tableSegments[0].vertices);
 
 /**
  * Definitions for the ball rack position and cue-ball line on the pool table
  */
-const ballRackPos = { x: 1 / 2, y: 1 / 4 };
+const footSpotPos = { x: 1 / 2, y: 1 / 4 };
 const cueBallLinePos = 3 / 4;
 
 /*
@@ -165,8 +168,8 @@ function createBallTexture(value: number, color: Color): ImageData {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';  
 
-  drawText(0.25 * w);
   drawText(0.76 * w);
+  drawText(0.25 * w);
 
   return ctx.getImageData(0, 0, w, h);
 }
@@ -192,16 +195,28 @@ const ballStyles = [
 
 const scale = .333;
 const cueBall = balls[0];
-const maxForceMag = 500;
+const maxForceMag = 600;
 let dragging = false;
+const rack = new Rack();
 
 // Place the cue-ball on the cue-ball line on the pool table
 Matter.Body.setPosition(cueBall.body, {
-  x: tableWidth / 2 + (2 * random() -1) * ballRadius,
+  x: tableWidth / 2 + (2 * random() -1) * cueBall.radius,
   y: tableLength * 0.75
 });
 
-// TODO: Stack balls 1-15 in the triangular rack with ball #8 at the rack position
+// Stack balls 1-15 in the triangular rack with ball #8 at the rack position
+rack.setup();
+
+balls.filter(ball => ball.id !== 0).forEach(ball => {
+  // find rack slot for this ball
+  const slot = rack.slots.find(slot => slot.ballId === ball.id);
+  // set ball position
+  Matter.Body.setPosition(ball.body, {
+    x: tableWidth / 2 + slot.u * ball.radius,
+    y: tableLength / 4 - slot.v * ball.radius
+  });
+});
 
 // Start the physics engine
 Engine.run(engine);
@@ -321,19 +336,16 @@ function animate(time = 0) {
   ctx.fillStyle = '#fff';
   ctx.fill();
 
-  // Place the cue-ball on the cue-ball line
-  // ctx.beginPath();
-  // ctx.arc(scale * cueBall.body.position.x, scale * tableLength * 0.75, scale * cueBall.radius, 0, TWO_PI);
-  // ctx.fillStyle = '#fff';
-  // ctx.fill();
-
-  // Apply force to the cue-ball
-  // if (cueBall.body.speed < 1) {
-  //   Matter.Body.applyForce(cueBall.body,
-  //     { x: cueBall.body.position.x, y: cueBall.body.position.y },
-  //     { x: 5, y: 10 }
-  //   );
-  // }
+  // Render the object balls
+  balls.filter(ball => ball.id !== 0).forEach(ball => {
+    ctx.beginPath();
+    ctx.arc(scale * ball.body.position.x, scale * ball.body.position.y, scale * ball.radius, 0, TWO_PI);
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.fill();
+    ctx.stroke();
+  });
 
   if (dragging) {
     ctx.beginPath();

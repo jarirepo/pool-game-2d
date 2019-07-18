@@ -24,12 +24,19 @@ The ball textures for balls 1-15 are generated programmatically.
 </figure>
 -->
 The pool table is also programmatically generated and composed by a green table surface with 4-sided polygon segments for the table edges. There are also openings for the 6 holes and indicators for the ball rack position and the cue-ball line.
+<!--
 <figure class="image">
   <img src="screenshots/poolgame-generated-table.png" alt="Pool table" />
   <figcaption>Generated pool table and balls</figcaption>
 </figure>
+-->
+<figure class="image">
+  <img src="screenshots/poolgame-rack-break.png" alt="Pool table" />
+  <figcaption>Generated pool table and balls</figcaption>
+</figure>
 
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
+[eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
 [parcel-bundler]: https://parceljs.org/
 [issue-1]: https://github.com/parcel-bundler/parcel/issues/579
 [matter-js]: https://ghub.io/matter-js
