@@ -23,7 +23,7 @@ The ball textures for balls 1-15 are generated programmatically.
   <figcaption>Ball textures</figcaption>
 </figure>
 -->
-The pool table is also programmatically generated and composed by a green table surface with 4-sided polygon segments for the table edges. There are also openings for the 6 holes and indicators for the ball rack position and the cue-ball line.
+The pool table is also programmatically generated and composed by a green table surface with 4-sided polygon segments for the table edges. There are also openings for the 6 holes and indicators for the ball rack position (foot spot) and the cue-ball line.
 <!--
 <figure class="image">
   <img src="screenshots/poolgame-generated-table.png" alt="Pool table" />
@@ -35,6 +35,8 @@ The pool table is also programmatically generated and composed by a green table 
   <figcaption>Generated pool table and balls</figcaption>
 </figure>
 
+The balls are positioned in the triangular ball rack according to the [general rules][eight-ball-rack] for eight-ball.
+
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
 [eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
 [parcel-bundler]: https://parceljs.org/
@@ -43,3 +45,4 @@ The pool table is also programmatically generated and composed by a green table 
 [poly-decomp]: https://ghub.io/poly-decomp
 [stats-js]: https://ghub.io/stats.js
 [ball-textures]: https://sites.google.com/site/actividades8/texturas
+[shuffle-algorithm]: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle

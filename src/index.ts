@@ -9,8 +9,9 @@ window['decomp'] = decomp;
 import { Ball } from './ball';
 import { Colors, Color } from './colors';
 import { Rack } from './rack';
+import { Vector3D, Matrix4 } from './vector3d';
 
-const { cos, PI, random, sin } = Math;
+const { cos, PI, random, sin, atan2, asin } = Math;
 const TWO_PI = 2 * PI;
 
 const stats = new Stats();
@@ -43,20 +44,48 @@ const ballOptions: Matter.IBodyDefinition = {
   isStatic: false,
   // force: { x: 0, y: 0 },
   friction: 0,
-  frictionAir: .01,
-  frictionStatic: 0,
+  frictionAir: .0075,
+  frictionStatic: .01,
   restitution: 1,
+  // density: .5,
   density: 1.7  // g/cm^3
   // sleepThreshold: 30
 };
-const ballRadius = 57.15; // mm
+
+const ballRadius = 57.15 / 2; // mm
+// const ballRadius = 40;
+const ballRadiusTol = 0.127;  // introduces some imperfection
+
 for (let i = 0; i < 16; i++) {
-  // const r = (ballRadius + (2 * random() - 1) * .127) / 2;  // mm 
+  const r = ballRadius + (2 * random() - 1) * ballRadiusTol / 2;  // mm 
   // const r = ballRadius - random() * .127;  // mm
-  const r = ballRadius / 2;  // mm
+  // const r = ballRadius;  // mm
   const b = Bodies.circle(0, 0, r, ballOptions);
   balls.push(new Ball(i, r, b));
 }
+
+/**
+ * Compute a unit sphere sphere model used for the UV-mapping
+ */
+const MSIZE = 16;
+const NSIZE = 16;
+const sphere: { x: number, y: number, z: number, u: number, v: number }[] = [];
+
+for (let i = 0; i <= MSIZE; i++) {
+  const theta = i / (MSIZE + 1) * PI;
+  const sinTheta = sin(theta);
+  const cosTheta = cos(theta);
+  for (let j = 0; j <= NSIZE; j++) {
+    const phi = j / (NSIZE + 1) * TWO_PI;
+    const x = sinTheta * cos(phi);
+    const y = sinTheta * sin(phi);
+    const z = cosTheta;
+    const u = 0.5 + atan2(z, x) / TWO_PI;
+    const v = 0.5 - asin(y) / PI;
+    sphere.push({ x, y, z, u, v });
+  }
+}
+// console.log(sphere);
 
 /**
  * Create the pool table boundary
@@ -74,12 +103,12 @@ function mmult(P: number[][], T: number[][]): number[][] {
 
 const tableOptions: Matter.IBodyDefinition = {
   isStatic: true,
-  friction: .05,
-  restitution: 1
+  friction: .1,
+  restitution: .99
 };
 const tableLength = 7 * 0.3048e3; // ft -> mm
 const tableWidth = tableLength / 2;
-const holeRadius = 1.333 * ballRadius;  // mm
+const holeRadius = 2 * ballRadius;  // mm
 const tableEdgeWidth = holeRadius / 2;
 const R90 = [ [ 0, 1, 0 ], [ -1, 0, 0 ], [ 0, 0, 1 ] ];
 const P1 = [
@@ -130,23 +159,12 @@ World.add(world, balls.map(b => b.body));
 const footSpotPos = { x: 1 / 2, y: 1 / 4 };
 const cueBallLinePos = 3 / 4;
 
-/*
-const elms: HTMLImageElement[] = [];
-for (let i = 1; i < 16; i++) {
-  const img = document.getElementById(`b${i}`) as HTMLImageElement;
-  elms.push(img);
-}
-// const im1 = ctx.createImageData(elms[0].width, elms[0].height);
-ctx.drawImage(elms[0], 0, 0, elms[0].width / 4, elms[0].height / 4);
-*/
-
 function createBallTexture(value: number, color: Color): ImageData {
   const c = `rgb(${color.r},${color.g},${color.b})`;
   const w = 256;
   const h = 128;
   const r = h / 2 - 32;
   const hy = (value < 9) ? 0 : 16;
-
   const drawText = (x: number) => {
     ctx.beginPath();
     ctx.fillStyle = '#fff';
@@ -155,23 +173,84 @@ function createBallTexture(value: number, color: Color): ImageData {
     ctx.fillStyle = '#000';
     ctx.fillText(value.toString(), x, h / 2 + 4);  
   };
-
   ctx.clearRect(0, 0, w, h);
-  
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, w, h);
-
   ctx.fillStyle = c;
   ctx.fillRect(0, hy, w, h - 2 * hy);
-  
   ctx.font = '24pt Trebuchet MS';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';  
-
   drawText(0.76 * w);
   drawText(0.25 * w);
-
   return ctx.getImageData(0, 0, w, h);
+}
+
+function drawBall(ball: Ball) {
+  const ex = { x: ball.ocs.m00, y: ball.ocs.m10, z: ball.ocs.m20 };
+  const ey = { x: ball.ocs.m01, y: ball.ocs.m11, z: ball.ocs.m21 };
+  const ez = { x: ball.ocs.m02, y: ball.ocs.m12, z: ball.ocs.m22 };
+
+  const x = ball.body.position.x;
+  const y = ball.body.position.y;
+  const L = 20;
+
+  // ctx.beginPath();
+  // ctx.arc(scale * ball.body.position.x, scale * ball.body.position.y, scale * ball.radius, 0, TWO_PI);
+  // ctx.fillStyle = '#fff';
+  // ctx.fill();
+
+  // Transform the unit sphere to the ball's Object Coordinate System (OCS)
+  sphere.forEach(p => {
+    const px = ball.radius * (p.x * ex.x + p.y * ex.y + p.z * ex.z);
+    const py = ball.radius * (p.x * ey.x + p.y * ey.y + p.z * ey.z);
+    const sx = scale * (x + px);
+    const sy = scale * (y + py);
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1, 0, TWO_PI);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+  });
+
+  // Display the Object Coordinate System (OCS)
+  ctx.beginPath();
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.moveTo(scale * x, scale * y);
+  ctx.lineTo(scale * x + L * ex.x, scale * y + L * ex.y);
+  ctx.strokeStyle = 'blue';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(scale * x, scale * y);
+  ctx.lineTo(scale * x + L * ey.x, scale * y + L * ey.y);
+  ctx.strokeStyle = 'red';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(scale * x, scale * y);
+  ctx.lineTo(scale * x + L * ez.x, scale * y + L * ez.y);
+  ctx.strokeStyle = 'magenta';
+  ctx.stroke();
+
+  // Display the angle (spin on the XY-plane)
+  // ctx.beginPath();
+  // ctx.strokeStyle = '#000';
+  // ctx.lineWidth = 2;
+  // ctx.moveTo(scale * ball.body.position.x, scale * ball.body.position.y);
+  // const dx = ball.radius * cos(ball.body.angle);
+  // const dy = ball.radius * sin(ball.body.angle);
+  // ctx.lineTo(scale * (ball.body.position.x + dx), scale * (ball.body.position.y + dy));
+  // ctx.stroke();
+
+  // Display the velocity vector
+  // const v = Matter.Vector.normalise(ball.body.velocity);
+  // ctx.beginPath();
+  // ctx.moveTo(scale * ball.body.position.x, scale * ball.body.position.y);
+  // ctx.lineTo(scale * (ball.body.position.x + 10 * ball.body.speed * v.x), scale * (ball.body.position.y + 10 * ball.body.speed * v.y));
+  // ctx.strokeStyle = 'rgb(0,0,128)';
+  // ctx.stroke();
 }
 
 const ballStyles = [
@@ -336,15 +415,10 @@ function animate(time = 0) {
   ctx.fillStyle = '#fff';
   ctx.fill();
 
-  // Render the object balls
+  // Render the object balls 1-15
   balls.filter(ball => ball.id !== 0).forEach(ball => {
-    ctx.beginPath();
-    ctx.arc(scale * ball.body.position.x, scale * ball.body.position.y, scale * ball.radius, 0, TWO_PI);
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    ctx.fill();
-    ctx.stroke();
+    ball.update();
+    drawBall(ball);
   });
 
   if (dragging) {

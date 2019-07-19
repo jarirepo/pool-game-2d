@@ -1,3 +1,5 @@
+const { floor, random } = Math;
+
 interface Slot {
   u: number;
   v: number;
@@ -36,34 +38,29 @@ export class Rack {
     // Shuffle ball ids 1-15
     const ids = new Array(15).fill(0).map((v, i) => 1 + i);
     for (let i = ids.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = floor(random() * (i + 1));
       [ids[i], ids[j]] = [ids[j], ids[i]];
     }
-    console.log('Shuffled ball ids:', ids);
     // Assign ball #1 to the apex of the rack (slot 0)
     const i1 = ids.indexOf(1);
     [ids[i1], ids[0]] = [ids[0], ids[i1]];
     // Assign ball #8 to the center of the rack (slot 4)
     const i8 = ids.indexOf(8);
     [ids[i8], ids[4]] = [ids[4], ids[i8]];
-    // Assign a solid and a striped ball to the rear corners of the rack (slot 11 and 14)
+    // Assign a solid (<8) and a striped ball (>8) to the rear corners of the rack (slot 11 and 14)
     const n11 = ids[11];
     const n14 = ids[14];
     if ((n11 < 8 && n14 < 8) || (n11 > 8 && n14 > 8)) {
-      // console.log('Invalid ids for slot 11 and 14');
       for (let k of [1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 13]) {
         let val = ids[k];
         if ((n14 < 8 && val > 8) || (n14 > 8 && val < 8)) {
           [ids[14], ids[k]] = [ids[k], ids[14]];
-          // console.log('Changed index:', k);
           break;
         }
       }
     }
-    console.log('Reordered valid ball ids:', ids);
     for (let i = 0; i < 15; i++) {
       this.slots[i].ballId = ids[i];
     }
-    console.log('Slots:', this.slots);
   }
 }
