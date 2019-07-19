@@ -13,6 +13,7 @@ import { Vector3D, Matrix4 } from './vector3d';
 
 const { cos, PI, random, sin, atan2, asin } = Math;
 const TWO_PI = 2 * PI;
+const HALF_PI = PI / 2;
 
 const stats = new Stats();
 stats.showPanel( 0 ); // fps
@@ -44,16 +45,16 @@ const ballOptions: Matter.IBodyDefinition = {
   isStatic: false,
   // force: { x: 0, y: 0 },
   friction: 0,
-  frictionAir: .0075,
+  frictionAir: .01,
   frictionStatic: .01,
   restitution: 1,
-  // density: .5,
-  density: 1.7  // g/cm^3
+  density: 1,
+  // density: 1.7  // g/cm^3
   // sleepThreshold: 30
 };
 
-const ballRadius = 57.15 / 2; // mm
-// const ballRadius = 40;
+// const ballRadius = 57.15 / 2; // mm
+const ballRadius = 40;
 const ballRadiusTol = 0.127;  // introduces some imperfection
 
 for (let i = 0; i < 16; i++) {
@@ -137,7 +138,7 @@ const tableSegments: Matter.Body[] = [
   Bodies.fromVertices(0, 0, vertexSets4, tableOptions)
 ];
 
-// Position the table edge segments and add them to the physics world since poly-decomp has moved to their CoG.
+// Position the table edge segments and add them to the physics world since poly-decomp has translated them to their CoG.
 Matter.Body.setPosition(tableSegments[0], { x: tableWidth / 2, y: tableEdgeWidth / 2 });
 Matter.Body.setPosition(tableSegments[1], { x: tableWidth - tableEdgeWidth / 2, y: 0.25 * tableLength });
 Matter.Body.setPosition(tableSegments[2], { x: tableWidth - tableEdgeWidth / 2, y: 0.75 * tableLength });
@@ -148,7 +149,6 @@ Matter.Body.setPosition(tableSegments[5], { x: tableEdgeWidth / 2, y: 0.75 * tab
 World.add(world, tableSegments);
 
 // Add the ball bodies to the world
-// World.add(world, balls[0].body);
 World.add(world, balls.map(b => b.body));
 
 // console.log(tableSegments[0].position, tableSegments[0].vertices);
@@ -186,6 +186,54 @@ function createBallTexture(value: number, color: Color): ImageData {
   return ctx.getImageData(0, 0, w, h);
 }
 
+function drawTable() {
+  // Pool table surface
+  ctx.beginPath();
+  ctx.moveTo(scale * holeRadius, 0);
+  ctx.lineTo(scale * (tableWidth - holeRadius), 0);
+  ctx.arc(scale * (tableWidth - holeRadius), scale * holeRadius, scale * holeRadius, -HALF_PI, 0);
+  ctx.lineTo(scale * tableWidth, scale * (tableLength - holeRadius));
+  ctx.arc(scale * (tableWidth - holeRadius), scale * (tableLength - holeRadius), scale * holeRadius, 0, HALF_PI);
+  ctx.lineTo(scale * holeRadius, scale * tableLength);
+  ctx.arc(scale * holeRadius, scale * (tableLength - holeRadius), scale * holeRadius, HALF_PI, PI);
+  ctx.lineTo(0, scale * holeRadius);
+  ctx.arc(scale * holeRadius, scale * holeRadius, scale * holeRadius, PI, -HALF_PI);
+  ctx.fillStyle = 'rgba(0,80,0,1)'; 
+  ctx.fill();
+
+  // Foot spot (rack position)
+  ctx.beginPath();
+  ctx.arc(scale * tableWidth / 2, scale * tableLength / 4, scale * ballRadius / 3, 0, TWO_PI);
+  ctx.fillStyle = 'rgba(0,64,0,.8)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(scale * tableWidth / 2, scale * tableLength / 4, scale * ballRadius / 6, 0, TWO_PI);
+  ctx.fillStyle = 'rgba(0,96,0,1)';
+  ctx.fill();
+
+  // Cue-ball line
+  ctx.beginPath();
+  ctx.moveTo(scale * tableEdgeWidth, scale * tableLength * 0.75);
+  ctx.lineTo(scale * (tableWidth - tableEdgeWidth), scale * tableLength * 0.75);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,64,0,.8)';
+  ctx.stroke();
+
+  // Table edge segments
+  ctx.beginPath();
+  tableSegments.forEach(segm => {
+    ctx.moveTo(scale * segm.vertices[0].x, scale * segm.vertices[0].y);
+    for (let k = 1; k < segm.vertices.length; k++) {
+      ctx.lineTo(scale * segm.vertices[k].x, scale * segm.vertices[k].y);
+    }
+  });
+  ctx.fillStyle = 'green';
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(0,100,0,1)';
+  ctx.fill();
+  ctx.stroke();
+}
+
 function drawBall(ball: Ball) {
   const ex = { x: ball.ocs.m00, y: ball.ocs.m10, z: ball.ocs.m20 };
   const ey = { x: ball.ocs.m01, y: ball.ocs.m11, z: ball.ocs.m21 };
@@ -193,7 +241,7 @@ function drawBall(ball: Ball) {
 
   const x = ball.body.position.x;
   const y = ball.body.position.y;
-  const L = 20;
+  const L = 30;
 
   // ctx.beginPath();
   // ctx.arc(scale * ball.body.position.x, scale * ball.body.position.y, scale * ball.radius, 0, TWO_PI);
@@ -203,7 +251,7 @@ function drawBall(ball: Ball) {
   // Transform the unit sphere to the ball's Object Coordinate System (OCS)
   sphere.forEach(p => {
     const px = ball.radius * (p.x * ex.x + p.y * ex.y + p.z * ex.z);
-    const py = ball.radius * (p.x * ey.x + p.y * ey.y + p.z * ey.z);
+    const py = -ball.radius * (p.x * ey.x + p.y * ey.y + p.z * ey.z);
     const sx = scale * (x + px);
     const sy = scale * (y + py);
     ctx.beginPath();
@@ -218,19 +266,19 @@ function drawBall(ball: Ball) {
 
   ctx.beginPath();
   ctx.moveTo(scale * x, scale * y);
-  ctx.lineTo(scale * x + L * ex.x, scale * y + L * ex.y);
+  ctx.lineTo(scale * x + L * ex.x, scale * y - L * ex.y);
   ctx.strokeStyle = 'blue';
   ctx.stroke();
 
   ctx.beginPath();
   ctx.moveTo(scale * x, scale * y);
-  ctx.lineTo(scale * x + L * ey.x, scale * y + L * ey.y);
+  ctx.lineTo(scale * x + L * ey.x, scale * y - L * ey.y);
   ctx.strokeStyle = 'red';
   ctx.stroke();
 
   ctx.beginPath();
   ctx.moveTo(scale * x, scale * y);
-  ctx.lineTo(scale * x + L * ez.x, scale * y + L * ez.y);
+  ctx.lineTo(scale * x + L * ez.x, scale * y - L * ez.y);
   ctx.strokeStyle = 'magenta';
   ctx.stroke();
 
@@ -344,70 +392,7 @@ function animate(time = 0) {
     }
   }
 
-  /**
-   * Pool table surface and table edges
-   */
-  ctx.beginPath();
-  // ctx.rect(0, 0, scale * tableWidth, scale * tableLength);
-  // top-left corner
-  ctx.moveTo(scale * holeRadius, 0);
-  ctx.arc(scale * holeRadius, scale * holeRadius, scale * holeRadius, -PI / 2, PI, true);
-  ctx.lineTo(scale * holeRadius, scale * holeRadius);
-  ctx.closePath();
-  // top-right corner
-  ctx.moveTo(scale * (tableWidth - holeRadius), scale * holeRadius);
-  ctx.lineTo(scale * tableWidth, scale * holeRadius);
-  ctx.arc(scale * (tableWidth - holeRadius), scale * holeRadius, scale * holeRadius, 0, -PI / 2, true);
-  ctx.closePath();
-  // bottom-right corner
-  ctx.moveTo(scale * (tableWidth - holeRadius), scale * (tableLength - holeRadius));
-  ctx.lineTo(scale * tableWidth, scale * (tableLength - holeRadius));
-  ctx.arc(scale * (tableWidth - holeRadius), scale * (tableLength - holeRadius), scale * holeRadius, 0, PI / 2, false);
-  ctx.closePath();
-  // botton-left corner
-  ctx.moveTo(scale * holeRadius, scale * (tableLength - holeRadius));
-  ctx.lineTo(scale * holeRadius, scale * tableLength);
-  ctx.arc(scale * holeRadius, scale * (tableLength - holeRadius), scale * holeRadius, PI / 2, PI, false);
-  ctx.closePath();
-  // table surface
-  ctx.rect(scale * holeRadius, 0, scale * (tableWidth - 2 * holeRadius), scale * holeRadius);
-  ctx.rect(scale * holeRadius, scale * (tableLength - holeRadius), scale * (tableWidth - 2 * holeRadius), scale * holeRadius); 
-  ctx.rect(0, scale * holeRadius, scale * tableWidth, scale * (tableLength - 2 * holeRadius));
-
-  ctx.fillStyle = 'rgba(0,80,0,1)'; 
-  ctx.fill();
-
-  // Ball rack position
-  ctx.beginPath();
-  ctx.arc(scale * tableWidth / 2, scale * tableLength / 4, scale * ballRadius / 3, 0, TWO_PI);
-  ctx.fillStyle = 'rgba(0,64,0,.8)';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(scale * tableWidth / 2, scale * tableLength / 4, scale * ballRadius / 6, 0, TWO_PI);
-  ctx.fillStyle = 'rgba(0,96,0,1)';
-  ctx.fill();
-
-  // Cue-ball line
-  ctx.beginPath();
-  ctx.moveTo(scale * tableEdgeWidth, scale * tableLength * 0.75);
-  ctx.lineTo(scale * (tableWidth - tableEdgeWidth), scale * tableLength * 0.75);
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = 'rgba(0,64,0,.8)';
-  ctx.stroke();
-
-  // Table edge segments
-  ctx.beginPath();
-  tableSegments.forEach(segm => {
-    ctx.moveTo(scale * segm.vertices[0].x, scale * segm.vertices[0].y);
-    for (let k = 1; k < segm.vertices.length; k++) {
-      ctx.lineTo(scale * segm.vertices[k].x, scale * segm.vertices[k].y);
-    }
-  });
-  ctx.fillStyle = 'green';
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(0,100,0,1)';
-  ctx.fill();
-  ctx.stroke();
+  drawTable();
 
   // Render the cue-ball
   ctx.beginPath();

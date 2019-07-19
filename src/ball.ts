@@ -44,21 +44,21 @@ export class Ball {
     /**
      * Find the (ball roll axis) vector perpendicular to the linear motion direction
      */
-    // const v: Vector3D = {
-    //   x: this.body.speed * this.body.velocity.y,
-    //   y: -this.body.speed * this.body.velocity.x,
-    //   z: 0
-    // };
     const v: Vector3D = {
-      x: -this.body.speed * this.body.velocity.y,
-      y: this.body.speed * this.body.velocity.x,
+      x: this.body.speed * this.body.velocity.y,
+      y: -this.body.speed * this.body.velocity.x,
       z: 0
     };
+    // const v: Vector3D = {
+    //   x: -this.body.speed * this.body.velocity.y,
+    //   y: this.body.speed * this.body.velocity.x,
+    //   z: 0
+    // };
 
     /**
      * Rotate about the z-axis such that the vector v coinsides with the x-axis
      */
-    const theta = atan2(v.y, v.x);
+    const theta = -atan2(v.y, v.x);
     const cosTheta = cos(theta);
     const sinTheta = sin(theta);
 

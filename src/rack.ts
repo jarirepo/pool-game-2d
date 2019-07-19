@@ -34,7 +34,6 @@ export class Rack {
   }
 
   setup() {
-    this.slots.forEach(slot => slot.ballId = NaN);
     // Shuffle ball ids 1-15
     const ids = new Array(15).fill(0).map((v, i) => 1 + i);
     for (let i = ids.length - 1; i > 0; i--) {
@@ -59,6 +58,7 @@ export class Rack {
         }
       }
     }
+    // Assing the ball ids to the slots
     for (let i = 0; i < 15; i++) {
       this.slots[i].ballId = ids[i];
     }
