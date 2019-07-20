@@ -37,6 +37,13 @@ The pool table is also programmatically generated and composed by a green table 
 
 The balls are positioned in the triangular ball rack according to the [general rules][eight-ball-rack] for eight-ball.
 
+## Spheres
+The balls are internally represented by spheres, each having their own object coordinate system. These are transformed each animation frame bassed on the motion derived from the physics engine which allows to create realistic rolling on the table and texturing.
+<figure class="image">
+  <img src="screenshots/poolgame-spheres-shaded-red.png" alt="Spheres" />
+  <figcaption>Flat-shaded spheres</figcaption>
+</figure>
+
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
 [eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
 [parcel-bundler]: https://parceljs.org/

@@ -1,4 +1,4 @@
-const { floor, random } = Math;
+const { floor, random, sqrt } = Math;
 
 interface Slot {
   u: number;
@@ -12,7 +12,7 @@ export class Rack {
 
   constructor() {
     const du = 1;
-    const dv = Math.sqrt(3);
+    const dv = sqrt(3);
 
     this.slots = [
       { u: 0, v: 0, ballId: NaN },

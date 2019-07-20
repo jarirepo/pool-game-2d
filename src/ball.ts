@@ -30,7 +30,8 @@ export class Ball {
      * 
      * speed in [m/s], see https://github.com/liabru/matter-js/issues/179
      */
-    this.omega = 1e3 * this.body.speed / this.radius;
+    // this.omega = 1e3 * this.body.speed / this.radius;
+    this.omega = 1e2 * this.body.speed / this.radius; // gives nuch better rolling effect!
 
     if (this.body.speed < .1) {
       return;
@@ -58,7 +59,7 @@ export class Ball {
     /**
      * Rotate about the z-axis such that the vector v coinsides with the x-axis
      */
-    const theta = -atan2(v.y, v.x);
+    const theta = atan2(v.y, v.x);
     const cosTheta = cos(theta);
     const sinTheta = sin(theta);
 
@@ -93,7 +94,8 @@ export class Ball {
     /**
      * Rotation about the z-axis for the spin effect
      */
-    const phi = this.body.angularVelocity * dt;
+    const phi = 1e3 * this.body.angularVelocity * dt;
+    // const phi = 1e3 * this.body.angularSpeed * dt;
     const cosPhi = cos(phi);
     const sinPhi = sin(phi);
 

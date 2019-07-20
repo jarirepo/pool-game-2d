@@ -10,8 +10,9 @@ import { Ball } from './ball';
 import { Colors, Color } from './colors';
 import { Rack } from './rack';
 import { Vector3D, Matrix4 } from './vector3d';
+import { Primitives } from './primitives';
 
-const { cos, PI, random, sin, atan2, asin } = Math;
+const { cos, PI, random, sin, atan2, asin, floor } = Math;
 const TWO_PI = 2 * PI;
 const HALF_PI = PI / 2;
 
@@ -48,13 +49,13 @@ const ballOptions: Matter.IBodyDefinition = {
   frictionAir: .01,
   frictionStatic: .01,
   restitution: 1,
-  density: 1,
-  // density: 1.7  // g/cm^3
+  // density: .8,
+  density: 1.7  // g/cm^3
   // sleepThreshold: 30
 };
 
-// const ballRadius = 57.15 / 2; // mm
-const ballRadius = 40;
+const ballRadius = 57.15 / 2; // mm
+// const ballRadius = 60;
 const ballRadiusTol = 0.127;  // introduces some imperfection
 
 for (let i = 0; i < 16; i++) {
@@ -64,29 +65,6 @@ for (let i = 0; i < 16; i++) {
   const b = Bodies.circle(0, 0, r, ballOptions);
   balls.push(new Ball(i, r, b));
 }
-
-/**
- * Compute a unit sphere sphere model used for the UV-mapping
- */
-const MSIZE = 16;
-const NSIZE = 16;
-const sphere: { x: number, y: number, z: number, u: number, v: number }[] = [];
-
-for (let i = 0; i <= MSIZE; i++) {
-  const theta = i / (MSIZE + 1) * PI;
-  const sinTheta = sin(theta);
-  const cosTheta = cos(theta);
-  for (let j = 0; j <= NSIZE; j++) {
-    const phi = j / (NSIZE + 1) * TWO_PI;
-    const x = sinTheta * cos(phi);
-    const y = sinTheta * sin(phi);
-    const z = cosTheta;
-    const u = 0.5 + atan2(z, x) / TWO_PI;
-    const v = 0.5 - asin(y) / PI;
-    sphere.push({ x, y, z, u, v });
-  }
-}
-// console.log(sphere);
 
 /**
  * Create the pool table boundary
@@ -235,6 +213,7 @@ function drawTable() {
 }
 
 function drawBall(ball: Ball) {
+  // Local coordinate axes for this ball
   const ex = { x: ball.ocs.m00, y: ball.ocs.m10, z: ball.ocs.m20 };
   const ey = { x: ball.ocs.m01, y: ball.ocs.m11, z: ball.ocs.m21 };
   const ez = { x: ball.ocs.m02, y: ball.ocs.m12, z: ball.ocs.m22 };
@@ -243,44 +222,76 @@ function drawBall(ball: Ball) {
   const y = ball.body.position.y;
   const L = 30;
 
+  // Display the Object Coordinate System (OCS)
+
+  // ctx.beginPath();
+  // ctx.lineWidth = 2;
+
+  // ctx.beginPath();
+  // ctx.moveTo(scale * x, scale * y);
+  // ctx.lineTo(scale * x + L * ex.x, scale * y - L * ex.y);
+  // ctx.strokeStyle = 'blue';
+  // ctx.stroke();
+
+  // ctx.beginPath();
+  // ctx.moveTo(scale * x, scale * y);
+  // ctx.lineTo(scale * x + L * ey.x, scale * y - L * ey.y);
+  // ctx.strokeStyle = 'red';
+  // ctx.stroke();
+
+  // ctx.beginPath();
+  // ctx.moveTo(scale * x, scale * y);
+  // ctx.lineTo(scale * x + L * ez.x, scale * y - L * ez.y);
+  // ctx.strokeStyle = 'magenta';
+  // ctx.stroke();
+
+  
   // ctx.beginPath();
   // ctx.arc(scale * ball.body.position.x, scale * ball.body.position.y, scale * ball.radius, 0, TWO_PI);
   // ctx.fillStyle = '#fff';
   // ctx.fill();
 
   // Transform the unit sphere to the ball's Object Coordinate System (OCS)
-  sphere.forEach(p => {
+  // Primitives.Sphere.data.forEach(p => {
+  //   const px = ball.radius * (p.x * ex.x + p.y * ex.y + p.z * ex.z);
+  //   const py = -ball.radius * (p.x * ey.x + p.y * ey.y + p.z * ey.z);
+  //   const sx = scale * (x + px);
+  //   const sy = scale * (y + py);
+  //   ctx.beginPath();
+  //   ctx.arc(sx, sy, 1, 0, TWO_PI);
+  //   ctx.fillStyle = '#fff';
+  //   ctx.fill();
+  // });
+
+  const Pview = Primitives.Sphere.data.map(p => {
     const px = ball.radius * (p.x * ex.x + p.y * ex.y + p.z * ex.z);
-    const py = -ball.radius * (p.x * ey.x + p.y * ey.y + p.z * ey.z);
+    const py = ball.radius * (p.x * ey.x + p.y * ey.y + p.z * ey.z);
     const sx = scale * (x + px);
-    const sy = scale * (y + py);
-    ctx.beginPath();
-    ctx.arc(sx, sy, 1, 0, TWO_PI);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
+    const sy = scale * (y - py);
+    return { x: sx, y: sy, z: 0 };
   });
 
-  // Display the Object Coordinate System (OCS)
-  ctx.beginPath();
-  ctx.lineWidth = 2;
-
-  ctx.beginPath();
-  ctx.moveTo(scale * x, scale * y);
-  ctx.lineTo(scale * x + L * ex.x, scale * y - L * ex.y);
-  ctx.strokeStyle = 'blue';
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(scale * x, scale * y);
-  ctx.lineTo(scale * x + L * ey.x, scale * y - L * ey.y);
-  ctx.strokeStyle = 'red';
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(scale * x, scale * y);
-  ctx.lineTo(scale * x + L * ez.x, scale * y - L * ez.y);
-  ctx.strokeStyle = 'magenta';
-  ctx.stroke();
+  // Transform the normal vectors of the unit sphere's faces to the ball's OCS
+  Primitives.Sphere.faces.forEach(f => {
+    // const nx = f.n.x * ex.x + f.n.y * ex.y + f.n.z * ex.z;
+    // const ny = f.n.x * ey.x + f.n.y * ey.y + f.n.z * ey.z;
+    const nz = f.n.x * ez.x + f.n.y * ez.y + f.n.z * ez.z;
+    if (nz > 0) {
+      ctx.beginPath();
+      ctx.moveTo(Pview[f.v[0]].x, Pview[f.v[0]].y);
+      ctx.lineTo(Pview[f.v[1]].x, Pview[f.v[1]].y);
+      ctx.lineTo(Pview[f.v[2]].x, Pview[f.v[2]].y);
+      ctx.lineTo(Pview[f.v[3]].x, Pview[f.v[3]].y);
+      // ctx.lineTo(Pview[f.v[0]].x, Pview[f.v[0]].y);
+      ctx.closePath();
+      // ctx.fillStyle = '#fff';
+      // ctx.fillStyle = 'rgba(255,255,255,.8)';
+      const c = floor(255 * nz);
+      // ctx.fillStyle = `rgba(${c},${c},${c},1)`;
+      ctx.fillStyle = `rgb(${c},0,0)`;
+      ctx.fill();
+    }
+  });
 
   // Display the angle (spin on the XY-plane)
   // ctx.beginPath();
