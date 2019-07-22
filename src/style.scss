@@ -29,6 +29,14 @@ body {
   background: #fff;
 }
 
+#scene2 {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  border: 1px solid yellowgreen;
+  display: none;
+}
+
 #stats {
   position: fixed;
   bottom: 0;

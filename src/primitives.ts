@@ -3,12 +3,13 @@ import { Vector3D } from './vector3d';
 interface Face {
   v: number[];    // vertex indices
   n: Vector3D;    // normal vector
+  e: Vector3D[];  // edge direction vectors
 }
 
 const { cos, sin, asin, atan2, PI, sqrt } = Math;
 const TWO_PI = 2 * PI;
-const MSIZE = 12;
-const NSIZE = 24;
+const MSIZE = 16;
+const NSIZE = 32;
 
 const vertices: { x: number, y: number, z: number, u: number, v: number }[] = [];
 const faces: Face[] = [];
@@ -57,14 +58,25 @@ for (let i = 0; i < MSIZE; i++) {
     w.x /= wmag;
     w.y /= wmag;
     w.z /= wmag;
+    // Edge direction vectors
+    const e: Vector3D[] = [
+      { x: vertices[n2].x - vertices[n1].x, y: vertices[n2].y - vertices[n1].y, z: vertices[n2].z - vertices[n1].z },
+      { x: vertices[n3].x - vertices[n2].x, y: vertices[n3].y - vertices[n2].y, z: vertices[n3].z - vertices[n2].z },
+      { x: vertices[n4].x - vertices[n3].x, y: vertices[n4].y - vertices[n3].y, z: vertices[n4].z - vertices[n3].z },
+      { x: vertices[n1].x - vertices[n4].x, y: vertices[n1].y - vertices[n4].y, z: vertices[n1].z - vertices[n4].z }
+    ].map(v => {
+      const m = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+      return { x: v.x / m, y: v.y / m, z: v.z / m };
+    });
     faces.push({
       v: [ n1, n2, n3, n4 ],
-      n: w
+      n: w,
+      e
     });
   }
 }
 
-console.log(faces);
+// console.log(faces);
 
 export namespace Primitives {
 

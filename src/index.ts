@@ -7,12 +7,10 @@ import * as decomp from 'poly-decomp';
 window['decomp'] = decomp;
 
 import { Ball } from './ball';
-import { Colors, Color } from './colors';
 import { Rack } from './rack';
-import { Vector3D, Matrix4 } from './vector3d';
 import { Primitives } from './primitives';
 
-const { cos, PI, random, sin, atan2, asin, floor } = Math;
+const { PI, random, floor, min, max, sqrt } = Math;
 const TWO_PI = 2 * PI;
 const HALF_PI = PI / 2;
 
@@ -33,6 +31,10 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.globalAlpha = 1;
 
 const mouse = Mouse.create(canvas);
+
+// const canvas2 = document.querySelector('#scene2') as HTMLCanvasElement;
+// const gl = canvas2.getContext('webgl');
+// console.log(gl);
 
 /**
  * Create the ball bodies
@@ -55,7 +57,7 @@ const ballOptions: Matter.IBodyDefinition = {
 };
 
 const ballRadius = 57.15 / 2; // mm
-// const ballRadius = 60;
+// const ballRadius = 40;
 const ballRadiusTol = 0.127;  // introduces some imperfection
 
 for (let i = 0; i < 16; i++) {
@@ -131,53 +133,80 @@ World.add(world, balls.map(b => b.body));
 
 // console.log(tableSegments[0].position, tableSegments[0].vertices);
 
+const scale = .333;
+const cueBall = balls[0];
+const maxForceMag = 600;
+let dragging = false;
+const rack = new Rack();
+
 /**
  * Definitions for the ball rack position and cue-ball line on the pool table
  */
 const footSpotPos = { x: 1 / 2, y: 1 / 4 };
 const cueBallLinePos = 3 / 4;
 
-function createBallTexture(value: number, color: Color): ImageData {
-  const c = `rgb(${color.r},${color.g},${color.b})`;
-  const w = 256;
-  const h = 128;
-  const r = h / 2 - 32;
-  const hy = (value < 9) ? 0 : 16;
-  const drawText = (x: number) => {
-    ctx.beginPath();
-    ctx.fillStyle = '#fff';
-    ctx.arc(x, h / 2, r, 0, TWO_PI);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.fillText(value.toString(), x, h / 2 + 4);  
-  };
-  ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = c;
-  ctx.fillRect(0, hy, w, h - 2 * hy);
-  ctx.font = '24pt Trebuchet MS';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';  
-  drawText(0.76 * w);
-  drawText(0.25 * w);
-  return ctx.getImageData(0, 0, w, h);
+/**
+ * Path2D
+ * https://developer.mozilla.org/en-US/docs/Web/API/Path2D/Path2D
+ */
+const tablePath = new Path2D();
+tablePath.moveTo(scale * holeRadius, 0);
+tablePath.lineTo(scale * (tableWidth - holeRadius), 0);
+tablePath.arc(scale * (tableWidth - holeRadius), scale * holeRadius, scale * holeRadius, -HALF_PI, 0);
+tablePath.lineTo(scale * tableWidth, scale * (tableLength - holeRadius));
+tablePath.arc(scale * (tableWidth - holeRadius), scale * (tableLength - holeRadius), scale * holeRadius, 0, HALF_PI);
+tablePath.lineTo(scale * holeRadius, scale * tableLength);
+tablePath.arc(scale * holeRadius, scale * (tableLength - holeRadius), scale * holeRadius, HALF_PI, PI);
+tablePath.lineTo(0, scale * holeRadius);
+tablePath.arc(scale * holeRadius, scale * holeRadius, scale * holeRadius, PI, -HALF_PI);
+
+let tableImageData: ImageData;
+
+// function createBallTexture(value: number, color: Color): ImageData {
+//   const c = `rgb(${color.r},${color.g},${color.b})`;
+//   const w = 256;
+//   const h = 128;
+//   // const r = h / 2 - 32;
+//   // const hy = (value < 9) ? 0 : 16;
+//   const r = h / 5;
+//   const hy = (value < 9) ? 0 : h / 5;
+//   const drawText = (x: number) => {
+//     ctx.beginPath();
+//     ctx.fillStyle = '#fff';
+//     ctx.arc(x, h / 2, r, 0, TWO_PI);
+//     ctx.fill();
+//     ctx.fillStyle = '#000';
+//     ctx.fillText(value.toString(), x, h / 2 + 4);  
+//   };
+//   ctx.clearRect(0, 0, w, h);
+//   ctx.fillStyle = '#fff';
+//   ctx.fillRect(0, 0, w, h);
+//   ctx.fillStyle = c;
+//   ctx.fillRect(0, hy, w, h - 2 * hy);
+//   ctx.font = '24pt Trebuchet MS';
+//   ctx.textAlign = 'center';
+//   ctx.textBaseline = 'middle';  
+//   drawText(0.76 * w);
+//   drawText(0.25 * w);
+//   return ctx.getImageData(0, 0, w, h);
+// }
+
+/*
+function webgl_CreateBallTexture(value: number, color: Color): WebGLTexture {
+  const imgData = createBallTexture(value, color);
+  const texture: WebGLTexture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, imgData);
+  return texture;
 }
+*/
 
 function drawTable() {
   // Pool table surface
-  ctx.beginPath();
-  ctx.moveTo(scale * holeRadius, 0);
-  ctx.lineTo(scale * (tableWidth - holeRadius), 0);
-  ctx.arc(scale * (tableWidth - holeRadius), scale * holeRadius, scale * holeRadius, -HALF_PI, 0);
-  ctx.lineTo(scale * tableWidth, scale * (tableLength - holeRadius));
-  ctx.arc(scale * (tableWidth - holeRadius), scale * (tableLength - holeRadius), scale * holeRadius, 0, HALF_PI);
-  ctx.lineTo(scale * holeRadius, scale * tableLength);
-  ctx.arc(scale * holeRadius, scale * (tableLength - holeRadius), scale * holeRadius, HALF_PI, PI);
-  ctx.lineTo(0, scale * holeRadius);
-  ctx.arc(scale * holeRadius, scale * holeRadius, scale * holeRadius, PI, -HALF_PI);
   ctx.fillStyle = 'rgba(0,80,0,1)'; 
-  ctx.fill();
+  ctx.fill(tablePath);
 
   // Foot spot (rack position)
   ctx.beginPath();
@@ -271,8 +300,10 @@ function drawBall(ball: Ball) {
     return { x: sx, y: sy, z: 0 };
   });
 
-  // Transform the normal vectors of the unit sphere's faces to the ball's OCS
+  // Render ball
+  /*
   Primitives.Sphere.faces.forEach(f => {
+    // Transform the normal vectors of the unit sphere's faces to the ball's OCS
     // const nx = f.n.x * ex.x + f.n.y * ex.y + f.n.z * ex.z;
     // const ny = f.n.x * ey.x + f.n.y * ey.y + f.n.z * ey.z;
     const nz = f.n.x * ez.x + f.n.y * ez.y + f.n.z * ez.z;
@@ -286,62 +317,173 @@ function drawBall(ball: Ball) {
       ctx.closePath();
       // ctx.fillStyle = '#fff';
       // ctx.fillStyle = 'rgba(255,255,255,.8)';
+      // Flat shading - assuming that the light source is pointing down at the pool table
       const c = floor(255 * nz);
       // ctx.fillStyle = `rgba(${c},${c},${c},1)`;
       ctx.fillStyle = `rgb(${c},0,0)`;
       ctx.fill();
     }
   });
+  */
 
-  // Display the angle (spin on the XY-plane)
-  // ctx.beginPath();
-  // ctx.strokeStyle = '#000';
-  // ctx.lineWidth = 2;
-  // ctx.moveTo(scale * ball.body.position.x, scale * ball.body.position.y);
-  // const dx = ball.radius * cos(ball.body.angle);
-  // const dy = ball.radius * sin(ball.body.angle);
-  // ctx.lineTo(scale * (ball.body.position.x + dx), scale * (ball.body.position.y + dy));
-  // ctx.stroke();
+  /**
+   * Render ball
+   *
+   * Step 1. Compute the ball boundary on-screen 
+   * Step 2. Find all visible faces
+   */
+  const bxmin = scale * (x - ball.radius),
+        bxmax = scale * (x + ball.radius),
+        bymin = scale * (y - ball.radius),
+        bymax = scale * (y + ball.radius);
 
-  // Display the velocity vector
-  // const v = Matter.Vector.normalise(ball.body.velocity);
+  const xmin = floor(bxmin),
+        xmax = floor(bxmax),
+        ymin = floor(bymin),
+        ymax = floor(bymax);
+
   // ctx.beginPath();
-  // ctx.moveTo(scale * ball.body.position.x, scale * ball.body.position.y);
-  // ctx.lineTo(scale * (ball.body.position.x + 10 * ball.body.speed * v.x), scale * (ball.body.position.y + 10 * ball.body.speed * v.y));
-  // ctx.strokeStyle = 'rgb(0,0,128)';
-  // ctx.stroke();
+  // ctx.strokeStyle = '#fff';
+  // ctx.strokeRect(sxmin, symin, sxmax - sxmin, symax - symin);
+
+  // Back face culling and transformation of edge direction vectors into the view
+  const visibleFaces = Primitives.Sphere.faces
+    .filter(f => (f.n.x * ez.x + f.n.y * ez.y + f.n.z * ez.z) >= 0)
+    .map(f => ({ ...f, e: f.e.map(v => ({ x: v.x * ex.x + v.y * ex.y + v.z * ex.z, y: v.x * ey.x + v.y * ey.y + v.z * ey.z, z: 0 })) }));
+
+  // Scan-convert all visible (quadrilateral) faces for this ball
+  visibleFaces.forEach(face => {
+    const p = face.v.map(v => Pview[v]);
+
+    const sxmin = floor(min(...p.map(v => v.x))),
+          sxmax = floor(max(...p.map(v => v.x))),
+          symin = floor(min(...p.map(v => v.y))),
+          symax = floor(max(...p.map(v => v.y)));
+
+    // const sxmin = min(...p.map(v => v.x)),
+    //   sxmax = max(...p.map(v => v.x)),
+    //   symin = min(...p.map(v => v.y)),
+    //   symax = max(...p.map(v => v.y));
+
+    // New scan conversion method...
+    const n1 = face.v[0], n2 = face.v[1], n3 = face.v[2], n4 = face.v[3];
+    const a1 = Pview[n2].x - Pview[n1].x,
+          a2 = Pview[n4].x - Pview[n1].x,
+          a3 = Pview[n1].x - Pview[n2].x + Pview[n3].x - Pview[n4].x,
+          b1 = Pview[n2].y - Pview[n1].y,
+          b2 = Pview[n4].y - Pview[n1].y,
+          b3 = Pview[n1].y - Pview[n2].y + Pview[n3].y - Pview[n4].y;          
+    const c0 = a1 * b3 - a3 * b1;
+
+    let a0: number, b0: number;
+    let c1: number, c2: number;
+    let d0: number, d1: number, d2: number;
+    let u: number, v: number, uv: number;
+    let tu: number, tv: number;
+
+    const u1 = Primitives.Sphere.data[n1].u,
+          u2 = Primitives.Sphere.data[n2].u,
+          u3 = Primitives.Sphere.data[n3].u,
+          u4 = Primitives.Sphere.data[n4].u,
+          v1 = Primitives.Sphere.data[n1].v,
+          v2 = Primitives.Sphere.data[n2].v,
+          v3 = Primitives.Sphere.data[n3].v,
+          v4 = Primitives.Sphere.data[n4].v;
+    const f0 = u1,
+          f1 = u2 - u1,
+          f2 = u4 - u1,
+          f3 = u1 - u2 + u3 - u4,
+          g0 = v1,
+          g1 = v2 - v1,
+          g2 = v4 - v1,
+          g3 = v1 - v2 + v3 - v4;
+    let ix: number, iy: number;
+    let srcIndex: number, targetIndex: number;
+
+    yloop: for (let sy = symin; sy <= symax; sy++) {
+      if (sy < 0 || sy > tableImageData.height - 1) { continue yloop; }
+      b0 = Pview[n1].y - sy;
+
+      xloop: for (let sx = sxmin; sx <= sxmax; sx++) {
+        if (sx < 0 || sx > tableImageData.width - 1) { continue xloop; }
+        a0 = Pview[n1].x - sx;
+        c1 = a0 * b3 - a3 * b0 + a1 * b2 - a2 * b1;
+        c2 = a0 * b2 - a2 * b0;
+        d0 = c1 / (2 * c0);
+        d1 = d0 * d0 - c2 / c0;
+        d2 = sqrt(d1);
+        u = -d0 - d2;
+        if (u < 0 || u > 1) {
+          u = -d0 + d2;
+          if (u < 0 || u > 1) {
+            continue xloop;
+          }
+        }
+        v = -(a0 + a1 * u) / (a2 + a3 * u);
+        if (v < 0 || v > 1) {
+          continue xloop;
+        }
+        uv = u * v;
+        // texture coords.
+        tu = f0 + f1 * u + f2 * v + f3 * uv;
+        tv = g0 + g1 * u + g2 * v + g3 * uv;
+        if (tu < 0) {
+          tu = 0;
+        } else if (tu > 1) {
+          tu = 1;
+        }
+        if (tv < 0) {
+          tv = 0;
+        } else if (tv > 1) {
+          tv = 1;
+        }
+        // Assuming texture image size 256x128px
+        ix = floor(tu * 256);
+        iy = floor(tv * 128);
+        if (ix < 0) {
+          ix = 0;
+        } else if (ix > 255) {
+          ix = 255;
+        }
+        if (iy < 0) {
+          iy = 0;
+        } else if (iy > 127) {
+          iy = 127;
+        }
+        // srcIndex = 4 * (ix + iy * 256);  // Assuming 256px texture width
+        // targetIndex = (sx - xmin + (sy - ymin) * 64)<<2;
+
+        srcIndex = (ix + (iy<<8)) << 2;  // Assuming 256px texture width
+
+        // targetIndex = (sx - xmin + ((sy - ymin)<<6))<<2;
+        // ball.imgData.data[targetIndex] = ball.texture.data[srcIndex];
+        // ball.imgData.data[targetIndex+1] = ball.texture.data[srcIndex+1];
+        // ball.imgData.data[targetIndex+2] = ball.texture.data[srcIndex+2];
+        // ball.imgData.data[targetIndex+3] = 255;
+        
+        targetIndex = (sx + sy * tableImageData.width) << 2;
+
+        tableImageData.data[targetIndex] = ball.texture.data[srcIndex];
+        tableImageData.data[targetIndex+1] = ball.texture.data[srcIndex+1];
+        tableImageData.data[targetIndex+2] = ball.texture.data[srcIndex+2];
+        tableImageData.data[targetIndex+3] = 255;
+      }
+    }
+  });
+
+  // Output ball image
+  // ctx.putImageData(ball.imgData, scale * (x - ball.radius), scale * (y - ball.radius), 0, 0, xmax-xmin, ymax-ymin);
 }
-
-const ballStyles = [
-  { color: Colors.WHITE, texture: null },
-  { color: Colors.YELLOW, texture: createBallTexture(1, Colors.YELLOW) },
-  { color: Colors.BLUE, texture: createBallTexture(2, Colors.BLUE) },
-  { color: Colors.RED, texture: createBallTexture(3, Colors.RED) },
-  { color: Colors.PURPLE, texture: createBallTexture(4, Colors.PURPLE) },
-  { color: Colors.ORANGE, texture: createBallTexture(5, Colors.ORANGE) },
-  { color: Colors.GREEN, texture: createBallTexture(6, Colors.GREEN) },
-  { color: Colors.BROWN, texture: createBallTexture(7, Colors.BROWN) },
-  { color: Colors.BLACK, texture: createBallTexture(8, Colors.BLACK) },
-  { color: Colors.WHITE, texture: createBallTexture(9, Colors.YELLOW) },
-  { color: Colors.WHITE, texture: createBallTexture(10, Colors.BLUE) },
-  { color: Colors.WHITE, texture: createBallTexture(11, Colors.RED) },
-  { color: Colors.WHITE, texture: createBallTexture(12, Colors.PURPLE) },
-  { color: Colors.WHITE, texture: createBallTexture(13, Colors.ORANGE) },
-  { color: Colors.WHITE, texture: createBallTexture(14, Colors.GREEN) },
-  { color: Colors.WHITE, texture: createBallTexture(15, Colors.BROWN) }
-];
-
-const scale = .333;
-const cueBall = balls[0];
-const maxForceMag = 600;
-let dragging = false;
-const rack = new Rack();
 
 // Place the cue-ball on the cue-ball line on the pool table
 Matter.Body.setPosition(cueBall.body, {
   x: tableWidth / 2 + (2 * random() -1) * cueBall.radius,
   y: tableLength * 0.75
 });
+
+// Init balls
+const maxBallSize = 64;
+balls.forEach(ball => ball.init(ctx, maxBallSize));
 
 // Stack balls 1-15 in the triangular rack with ball #8 at the rack position
 rack.setup();
@@ -389,6 +531,7 @@ function animate(time = 0) {
   ctx.fillStyle = '#333';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
+  /*
   // Output textures for balls 1-15
   let index = 1;
   for (let i = 0; i < 5; i++) {
@@ -397,12 +540,12 @@ function animate(time = 0) {
       // const ty = i * 128;
       const tx = canvas.width - (3 - j) * 256;
       const ty = i * 128;
-      const imgData = ballStyles[index].texture;
-      index++;
-      ctx.putImageData(imgData, tx, ty, 0, 0, imgData.width, imgData.height);
+      const imgData = balls[index].texture;
+      ctx.putImageData(balls[index++].texture, tx, ty, 0, 0, imgData.width, imgData.height);
     }
   }
-
+  */
+ 
   drawTable();
 
   // Render the cue-ball
@@ -411,11 +554,16 @@ function animate(time = 0) {
   ctx.fillStyle = '#fff';
   ctx.fill();
 
+  // Get image data where to render the balls
+  tableImageData = ctx.getImageData(0, 0, scale * tableWidth, scale * tableLength);
+
   // Render the object balls 1-15
   balls.filter(ball => ball.id !== 0).forEach(ball => {
     ball.update();
     drawBall(ball);
   });
+
+  ctx.putImageData(tableImageData, 0, 0);
 
   if (dragging) {
     ctx.beginPath();

@@ -44,8 +44,17 @@ The balls are internally represented by spheres, each having their own object co
   <figcaption>Flat-shaded spheres</figcaption>
 </figure>
 
+## Texturing
+<figure class="image">
+  <img src="screenshots/poolgame-textured-balls.png" alt="Spheres" />
+  <figcaption>Textured balls</figcaption>
+</figure>
+
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
 [eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
+[bilinear-interp]: https://en.wikipedia.org/wiki/Bilinear_interpolation
+[barycentric]: https://en.wikipedia.org/wiki/Barycentric_coordinate_system
+[uv-mapping]: https://en.wikipedia.org/wiki/UV_mapping
 [parcel-bundler]: https://parceljs.org/
 [issue-1]: https://github.com/parcel-bundler/parcel/issues/579
 [matter-js]: https://ghub.io/matter-js
@@ -53,3 +62,4 @@ The balls are internally represented by spheres, each having their own object co
 [stats-js]: https://ghub.io/stats.js
 [ball-textures]: https://sites.google.com/site/actividades8/texturas
 [shuffle-algorithm]: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+[texture-mapping-canvas]: https://stackoverflow.com/questions/4774172/image-manipulation-and-texture-mapping-using-html5-canvas

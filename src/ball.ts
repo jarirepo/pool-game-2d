@@ -1,7 +1,57 @@
 import * as Matter from 'matter-js';
-import { Vector3D, Matrix4, mmult4, mmult4all } from './vector3d';
+import { Vector3D, Matrix4, mmult4, mmult4all, getRandomAxes } from './vector3d';
+import { Color, Colors } from './colors';
 
 const { PI, cos, sin, atan2 } = Math;
+const TWO_PI = 2 * PI;
+
+function createBallTexture(value: number, color: Color, ctx: CanvasRenderingContext2D): ImageData {
+  const c = `rgb(${color.r},${color.g},${color.b})`;
+  const w = 256;
+  const h = 128;
+  // const r = h / 2 - 32;
+  // const hy = (value < 9) ? 0 : 16;
+  const r = h / 5;
+  const hy = (value < 9) ? 0 : h / 5;
+  const drawText = (x: number) => {
+    ctx.beginPath();
+    ctx.fillStyle = '#fff';
+    ctx.arc(x, h / 2, r, 0, TWO_PI);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillText(value.toString(), x, h / 2 + 4);  
+  };
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = c;
+  ctx.fillRect(0, hy, w, h - 2 * hy);
+  ctx.font = '24pt Trebuchet MS';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';  
+  drawText(0.76 * w);
+  drawText(0.25 * w);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const ballColors = {
+  0: Colors.WHITE,
+  1: Colors.YELLOW,
+  2: Colors.BLUE,
+  3: Colors.RED,
+  4: Colors.PURPLE,
+  5: Colors.ORANGE,
+  6: Colors.GREEN,
+  7: Colors.BROWN,
+  8: Colors.BLACK,
+  9: Colors.YELLOW,
+  10: Colors.BLUE,
+  11: Colors.RED,
+  12: Colors.PURPLE,
+  13: Colors.ORANGE,
+  14: Colors.GREEN,
+  15: Colors.BROWN
+};
 
 export class Ball {
 
@@ -9,18 +59,38 @@ export class Ball {
   omega = 0;
 
   // Object Coordinate System (OCS)
-  ocs: Matrix4 = {
-    m00: 1, m01: 0, m02: 0, m03: 0,
-    m10: 0, m11: 1, m12: 0, m13: 0,
-    m20: 0, m21: 0, m22: 1, m23: 0,
-    m30: 0, m31: 0, m32: 0, m33: 1
-  }
+  // ocs: Matrix4 = {
+  //   m00: 1, m01: 0, m02: 0, m03: 0,
+  //   m10: 0, m11: 1, m12: 0, m13: 0,
+  //   m20: 0, m21: 0, m22: 1, m23: 0,
+  //   m30: 0, m31: 0, m32: 0, m33: 1
+  // };
+  ocs: Matrix4;
+
+  // Image buffer
+  imgData: ImageData;
+
+  texture: ImageData;
   
   constructor(
     public readonly id: number,     // Ball id 0-15
     public readonly radius: number, // Ball radius in [mm]
     public readonly body: Matter.Body
   ) { }
+
+  init(ctx: CanvasRenderingContext2D, maxBallSize: number) {
+    this.ocs = getRandomAxes();
+    this.texture = createBallTexture(this.id, ballColors[this.id], ctx);
+    this.imgData = ctx.createImageData(maxBallSize, maxBallSize); // all pixels initialized to (0,0,0,0)
+    // const n = maxBallSize * maxBallSize;
+    // for (let i = 0; i < n; i++) {
+    //   const k = i<<2;
+    //   this.imgData.data[k] = 255;
+    //   this.imgData.data[k+1] = 255;
+    //   this.imgData.data[k+2] = 255;
+    //   this.imgData.data[k+3] = 0;
+    // }
+  }
 
   update() {
     /**
@@ -94,7 +164,7 @@ export class Ball {
     /**
      * Rotation about the z-axis for the spin effect
      */
-    const phi = 1e3 * this.body.angularVelocity * dt;
+    const phi = 1e2 * this.body.angularVelocity * dt;
     // const phi = 1e3 * this.body.angularSpeed * dt;
     const cosPhi = cos(phi);
     const sinPhi = sin(phi);
