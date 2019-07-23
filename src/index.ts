@@ -1,17 +1,11 @@
 import * as Matter from 'matter-js';
 import * as Stats from 'stats.js';
-
-// // https://github.com/liabru/matter-js/issues/559
-// // window['decomp'] = require('poly-decomp');
-// import * as decomp from 'poly-decomp';
-// window['decomp'] = decomp;
-
 import { Primitives } from './primitives';
 import { Ball } from './ball';
 import { Rack } from './rack';
 import { PoolTable } from './pool-table';
 
-const { PI, random, floor, min, max, sqrt } = Math;
+const { PI, random, floor, min, max, sqrt, sin } = Math;
 const TWO_PI = 2 * PI;
 
 const stats = new Stats();
@@ -49,9 +43,7 @@ const ballRadius = 57.15 / 2; // mm
 // const ballRadius = 50;
 const ballRadiusTol = 0.127;  // introduces some imperfection
 for (let i = 0; i < 16; i++) {
-  const r = ballRadius + (2 * random() - 1) * ballRadiusTol / 2;  // mm 
-  // const r = ballRadius - random() * .127;  // mm
-  // const r = ballRadius;  // mm
+  const r = (i === 0) ? 0.9375 * ballRadius : ballRadius + (2 * random() - 1) * ballRadiusTol / 2;  // mm 
   const b = Bodies.circle(0, 0, r, ballOptions);
   balls.push(new Ball(i, r, b));
 }
@@ -64,10 +56,16 @@ const poolTable = new PoolTable(7 * 0.3048e3, 2 * ballRadius, tableOptions);  //
 
 const rack = new Rack();
 const cueBall = balls[0];
+const blackBall = balls[8];
+const forceImpulse = new Array(5).fill(0).map((v, i) => sin(PI * ((i - 2) / 2 + 1) / 2));
 const maxForceMag = 600;
-const scale = .333;
+const scale = 1/3;
 
 let dragging = false;
+let shooting = false;
+let shootStep = 0;
+let shootDir: Matter.Vector;
+let shootForce: number;
 let tableImageData: ImageData;
 
 // Add the bodies for the table segments and balls to the world
@@ -278,31 +276,9 @@ function drawBall(ball: Ball) {
 
         /**
          * Pixel shading
-         * Uses the z-component (0<=nz<=1) of the face's normal vector (n) to adjust the shade of the texture color value at (ix,iy)
-         * 
-         * L = sqrt(r^2 + g^2 + b^2)
-         * M = max{r,g,b}
-         * r' = nz * M * (r / L)
-         * g' = nz * M * (g / L)
-         * b' = nz * M * (b / L)
-         * 
-         * To avoid the sqrt and max operators here, the color values M*({r,g,b}/L) are already calculated in the texture
-         */
-
-         /*
-        const red = ball.texture.data[srcIndex];
-        const gre = ball.texture.data[srcIndex+1];
-        const blu = ball.texture.data[srcIndex+2];
-        
-        const rgbmag = sqrt(red * red + blu * blu + gre * gre);
-        const rgbmax = max(red, gre, blu);
-
-        tableImageData.data[targetIndex] = nz * (rgbmax * red / rgbmag);
-        tableImageData.data[targetIndex+1] = nz * (rgbmax * gre / rgbmag);
-        tableImageData.data[targetIndex+2] = nz * (rgbmax * blu / rgbmag);
-        tableImageData.data[targetIndex+3] = 255;
-        */
-       
+         * Uses the z-component (0<=nz<=1) of the face's normal vector (n) to adjust the shade of the texture color value at (ix,iy).
+         * Assumes that there is a directional light above the pool table.
+         */       
         tableImageData.data[targetIndex] = nz * ball.texture.data[srcIndex];
         tableImageData.data[targetIndex+1] = nz * ball.texture.data[srcIndex+1];
         tableImageData.data[targetIndex+2] = nz * ball.texture.data[srcIndex+2];
@@ -342,7 +318,6 @@ function animate(time = 0) {
   stats.begin();
 
   // console.log(cueBall.body.speed, cueBall.body.isSleeping);
-
   if (cueBall.body.speed < 1) {
     // Matter.Body.setVelocity(cueBall.body, { x: 0, y: 0 });
     if (!dragging) {
@@ -357,12 +332,20 @@ function animate(time = 0) {
           y: mouse.mouseupPosition.y / scale
         };
         const v = Matter.Vector.sub(cueBall.body.position, m);
-        const forceMag = Matter.Vector.magnitude(v);
-        const vn = Matter.Vector.normalise(v);
-        const f = Matter.Vector.mult(vn, forceMag);
-        Matter.Body.applyForce(cueBall.body, cueBall.body.position, f);
-        console.log('Applied force:', f);
+        shootForce = min(0.5 * Matter.Vector.magnitude(v), maxForceMag);
+        shootDir = Matter.Vector.normalise(v);
+        shootStep = 0;
+        shooting = true;
       }
+    }
+  }
+
+  if (shooting) {    
+    const force = Matter.Vector.mult(shootDir, shootForce * forceImpulse[shootStep]);
+    Matter.Body.applyForce(cueBall.body, cueBall.body.position, force);
+    shootStep++;
+    if (shootStep === forceImpulse.length) {
+      shooting = false;
     }
   }
 
