@@ -13,25 +13,26 @@ const HALF_PI = PI / 2;
 export class PoolTable {
   width: number;
   egdeWidth: number;
-  edgeSegments: Matter.Body[];
   footSpotPos = { x: 1 / 2, y: 1 / 4 };   // ball rack position on the pool table
   cueBallLinePos = 3 / 4;                 // cue-ball line position on the pool table
   imgData: ImageData;
   boundary: Path2D;
+  edgeSegments: Matter.Body[];
+  pockets: Matter.Body[];
 
   constructor(
     public readonly length: number,
-    public readonly holeRadius: number,
+    public readonly pocketRadius: number,
     public readonly options: Matter.IBodyDefinition
   ) {
     this.width = this.length / 2;
-    this.egdeWidth = this.holeRadius / 2;
+    this.egdeWidth = this.pocketRadius / 3;
     const R90 = [ [ 0, 1, 0 ], [ -1, 0, 0 ], [ 0, 0, 1 ] ];
     const P1 = [
-      [ this.holeRadius, 0, 1 ],
-      [ this.width - holeRadius, 0, 1 ],
-      [ this.width - 1.5 * this.holeRadius, this.egdeWidth, 1 ],
-      [ 1.5 * this.holeRadius, this.egdeWidth, 1]
+      [ this.pocketRadius, 0, 1 ],
+      [ this.width - pocketRadius, 0, 1 ],
+      [ this.width - 1.5 * this.pocketRadius, this.egdeWidth, 1 ],
+      [ 1.5 * this.pocketRadius, this.egdeWidth, 1]
     ];
     const P2 = mmult(P1, R90);
     const P3 = mmult(P2, R90);
@@ -59,15 +60,26 @@ export class PoolTable {
     Matter.Body.setPosition(this.edgeSegments[5], { x: this.egdeWidth / 2, y: 0.75 * this.length });
     // Path2D, https://developer.mozilla.org/en-US/docs/Web/API/Path2D/Path2D
     this.boundary = new Path2D();
-    this.boundary.moveTo(holeRadius, 0);
-    this.boundary.lineTo(this.width - holeRadius, 0);
-    this.boundary.arc(this.width - holeRadius, holeRadius, holeRadius, -HALF_PI, 0);
-    this.boundary.lineTo(this.width, this.length - holeRadius);
-    this.boundary.arc(this.width - holeRadius, this.length - holeRadius, holeRadius, 0, HALF_PI);
-    this.boundary.lineTo(holeRadius, this.length);
-    this.boundary.arc(holeRadius, this.length - holeRadius, holeRadius, HALF_PI, PI);
-    this.boundary.lineTo(0, holeRadius);
-    this.boundary.arc(holeRadius, holeRadius, holeRadius, PI, -HALF_PI);
+    this.boundary.moveTo(pocketRadius, 0);
+    this.boundary.lineTo(this.width - pocketRadius, 0);
+    this.boundary.arc(this.width - pocketRadius, pocketRadius, pocketRadius, -HALF_PI, 0);
+    this.boundary.lineTo(this.width, this.length - pocketRadius);
+    this.boundary.arc(this.width - pocketRadius, this.length - pocketRadius, pocketRadius, 0, HALF_PI);
+    this.boundary.lineTo(pocketRadius, this.length);
+    this.boundary.arc(pocketRadius, this.length - pocketRadius, pocketRadius, HALF_PI, PI);
+    this.boundary.lineTo(0, pocketRadius);
+    this.boundary.arc(pocketRadius, pocketRadius, pocketRadius, PI, -HALF_PI);
+    // Create pockets (as detectors) which will  trigger collision events, https://github.com/liabru/matter-js/blob/master/examples/sensors.js    
+    // this.pockets = [
+    //   Matter.Bodies.circle(0, 0, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-1' }),
+    //   Matter.Bodies.circle(this.width, 0, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-2' }),
+    //   Matter.Bodies.circle(this.width, this.length / 2, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-3' }),
+    //   Matter.Bodies.circle(this.width, this.length, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-4' }),
+    //   Matter.Bodies.circle(0, this.length, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-5' }),
+    //   Matter.Bodies.circle(0, this.length / 2, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-6' }),
+    // ];
+    this.pockets = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: .5 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 0, y: .5 }]
+      .map<Matter.Body>((p, i) => Matter.Bodies.circle(p.x * this.width, p.y * this.length, this.pocketRadius, { isSensor: true, isStatic: true, label: `pocket-${i}` }));
   }
 
   render(ctx: CanvasRenderingContext2D) {
@@ -100,8 +112,13 @@ export class PoolTable {
     });
     ctx.fillStyle = 'green';
     ctx.fill();
-    /*ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(0,100,0,1)';
-    ctx.stroke();*/
+    // Pockets
+    ctx.beginPath();
+    this.pockets.forEach(pocket => {
+      ctx.moveTo(pocket.position.x + this.pocketRadius,pocket.position.y);
+      ctx.arc(pocket.position.x, pocket.position.y, this.pocketRadius, 0, TWO_PI);
+      ctx.fillStyle = '#000';
+    });
+    ctx.fill();
   }
 }

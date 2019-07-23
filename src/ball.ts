@@ -79,7 +79,6 @@ export class Ball {
 
   // Image buffer
   imgData: ImageData;
-
   texture: ImageData;
   
   constructor(

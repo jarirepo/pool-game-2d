@@ -44,7 +44,7 @@ const ballRadius = 57.15 / 2; // mm
 const ballRadiusTol = 0.127;  // introduces some imperfection
 for (let i = 0; i < 16; i++) {
   const r = (i === 0) ? 0.9375 * ballRadius : ballRadius + (2 * random() - 1) * ballRadiusTol / 2;  // mm 
-  const b = Bodies.circle(0, 0, r, ballOptions);
+  const b = Bodies.circle(0, 0, r, { ...ballOptions, label: `ball-${i}` });
   balls.push(new Ball(i, r, b));
 }
 
@@ -52,25 +52,63 @@ for (let i = 0; i < 16; i++) {
  * Create the pool table boundary
  */
 const tableOptions: Matter.IBodyDefinition = { isStatic: true, friction: .1, restitution: .99 };
-const poolTable = new PoolTable(7 * 0.3048e3, 2 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
+const poolTable = new PoolTable(7 * 0.3048e3, 1.5 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
 
 const rack = new Rack();
 const cueBall = balls[0];
 const blackBall = balls[8];
-const forceImpulse = new Array(5).fill(0).map((v, i) => sin(PI * ((i - 2) / 2 + 1) / 2));
-const maxForceMag = 600;
+// const forceImpulse = new Array(5).fill(0).map((v, i) => sin(PI * ((i - 2) / 2 + 1) / 2));
+const forceImpulse = new Array(7).fill(0).map((v, i) => floor(255 * sin(PI * ((i - 3) / 3 + 1) / 2)));
+const maxForceMag = 100;
 const scale = 1/3;
-
 let dragging = false;
 let shooting = false;
 let shootStep = 0;
 let shootDir: Matter.Vector;
 let shootForce: number;
 let tableImageData: ImageData;
+// console.log(forceImpulse);
 
 // Add the bodies for the table segments and balls to the world
 World.add(world, poolTable.edgeSegments);
+World.add(world, poolTable.pockets);
 World.add(world, balls.map(b => b.body));
+
+// Handle collision events
+Matter.Events.on(engine, 'collisionActive', (event: Matter.IEventCollision<Matter.Engine>) => {
+  const pairs = event.pairs;
+  // console.log('collisionActive', pairs);
+  let a: Matter.Body, b: Matter.Body;
+  for (let pair of pairs) {
+    a = pair.bodyA; // Pocket
+    b = pair.bodyB; // Ball
+    const isPocketA = a.label.startsWith('pocket');
+    const isPocketB = b.label.startsWith('pocket');
+    // const isBallA = a.label.startsWith('ball');
+    // const isBallB = b.label.startsWith('ball');
+    if (isPocketA || isPocketB) {
+      if (!isPocketA) {
+        [a, b] = [b, a];
+      }
+      const pocketId = Number.parseInt(a.label.split('-')[1]);
+      const ballId = Number.parseInt(b.label.split('-')[1]);
+      // console.log(`Ball ${ballId} collided with Pocket ${pocketId}`);
+      // Determine if the collision is just a "touch" or if the ball is "inside" the pocket
+      const dx = a.position.x - b.position.x;
+      const dy = a.position.y - b.position.y;
+      const d2 = dx * dx + dy * dy;
+      // console.log([d2, poolTable.pocketRadius]);
+      if (d2 < poolTable.pocketRadius * poolTable.pocketRadius) {
+        console.log('Ball fell into the pocket!');
+      }
+    }
+  }
+});
+
+Matter.Events.on(engine, 'collisionEnd', (event: Matter.IEventCollision<Matter.Engine>) => {
+  const pairs = event.pairs;
+  // console.log('collisionEnd', pairs);
+});
 
 function drawBall(ball: Ball) {
   // Local coordinate axes for this ball
@@ -332,16 +370,17 @@ function animate(time = 0) {
           y: mouse.mouseupPosition.y / scale
         };
         const v = Matter.Vector.sub(cueBall.body.position, m);
-        shootForce = min(0.5 * Matter.Vector.magnitude(v), maxForceMag);
+        shootForce = min(floor(0.5 * Matter.Vector.magnitude(v)), maxForceMag);
         shootDir = Matter.Vector.normalise(v);
         shootStep = 0;
         shooting = true;
+        console.log(shootForce);
       }
     }
   }
 
   if (shooting) {    
-    const force = Matter.Vector.mult(shootDir, shootForce * forceImpulse[shootStep]);
+    const force = Matter.Vector.mult(shootDir, (shootForce * forceImpulse[shootStep]) >> 8);
     Matter.Body.applyForce(cueBall.body, cueBall.body.position, force);
     shootStep++;
     if (shootStep === forceImpulse.length) {
@@ -386,7 +425,7 @@ function animate(time = 0) {
   }
   */
 
-  // User input
+  // Player input
   if (dragging) {
     ctx.beginPath();
     ctx.moveTo(scale * cueBall.body.position.x, scale * cueBall.body.position.y);
