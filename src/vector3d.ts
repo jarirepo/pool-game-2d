@@ -72,3 +72,14 @@ export function getRandomAxes(): Matrix4 {
   };
   return mmult4all([Rx, Ry, Rz]);
 }
+
+export function mmult(P: number[][], T: number[][]): number[][] {
+  const Q = new Array(P.length);
+  for (let i = 0; i < P.length; i++) {
+    const x = P[i][0] * T[0][0] + P[i][1] * T[1][0] + P[i][2] * T[2][0];
+    const y = P[i][0] * T[0][1] + P[i][1] * T[1][1] + P[i][2] * T[2][1];
+    const w = P[i][0] * T[0][2] + P[i][1] * T[1][2] + P[i][2] * T[2][2];
+    Q[i] = [ x, y, w ];
+  }
+  return Q;
+}

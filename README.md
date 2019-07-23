@@ -46,8 +46,14 @@ The balls are internally represented by spheres, each having their own object co
 
 ## Texturing
 <figure class="image">
-  <img src="screenshots/poolgame-textured-balls.png" alt="Spheres" />
+  <img src="screenshots/poolgame-textured-balls.png" alt="Textured balls" />
   <figcaption>Textured balls</figcaption>
+</figure>
+
+## Shading
+<figure class="image">
+  <img src="screenshots/poolgame-shaded-balls.png" alt="Shaded balls" />
+  <figcaption>Shaded balls</figcaption>
 </figure>
 
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball

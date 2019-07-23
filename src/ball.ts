@@ -5,10 +5,13 @@ import { Color, Colors } from './colors';
 const { PI, cos, sin, atan2 } = Math;
 const TWO_PI = 2 * PI;
 
+const ballTextureWidth = 256,
+      ballTextureHeight = 128;
+
 function createBallTexture(value: number, color: Color, ctx: CanvasRenderingContext2D): ImageData {
   const c = `rgb(${color.r},${color.g},${color.b})`;
-  const w = 256;
-  const h = 128;
+  const w = ballTextureWidth;
+  const h = ballTextureHeight;
   // const r = h / 2 - 32;
   // const hy = (value < 9) ? 0 : 16;
   const r = h / 5;
@@ -34,6 +37,13 @@ function createBallTexture(value: number, color: Color, ctx: CanvasRenderingCont
   return ctx.getImageData(0, 0, w, h);
 }
 
+/*
+* Ball colors:
+ * 0: white (cue-ball)
+ * 1: yellow, 2: blue, 3: red, 4: purple, 5: orange, 6: green, 7: brown
+ * 8: black
+ * 9-15: white with color stripe
+ */
 const ballColors = {
   0: Colors.WHITE,
   1: Colors.YELLOW,
