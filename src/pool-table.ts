@@ -1,5 +1,6 @@
 import * as Matter from 'matter-js';
 import { mmult } from './vector3d';
+import { Pocket } from './pocket';
 
 // https://github.com/liabru/matter-js/issues/559
 // window['decomp'] = require('poly-decomp');
@@ -18,7 +19,7 @@ export class PoolTable {
   imgData: ImageData;
   boundary: Path2D;
   edgeSegments: Matter.Body[];
-  pockets: Matter.Body[];
+  pockets: Pocket[];
 
   constructor(
     public readonly length: number,
@@ -70,16 +71,13 @@ export class PoolTable {
     this.boundary.lineTo(0, pocketRadius);
     this.boundary.arc(pocketRadius, pocketRadius, pocketRadius, PI, -HALF_PI);
     // Create pockets (as detectors) which will  trigger collision events, https://github.com/liabru/matter-js/blob/master/examples/sensors.js    
-    // this.pockets = [
-    //   Matter.Bodies.circle(0, 0, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-1' }),
-    //   Matter.Bodies.circle(this.width, 0, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-2' }),
-    //   Matter.Bodies.circle(this.width, this.length / 2, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-3' }),
-    //   Matter.Bodies.circle(this.width, this.length, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-4' }),
-    //   Matter.Bodies.circle(0, this.length, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-5' }),
-    //   Matter.Bodies.circle(0, this.length / 2, this.pocketRadius, { isSensor: true, isStatic: true, label: 'pocket-6' }),
-    // ];
     this.pockets = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: .5 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 0, y: .5 }]
-      .map<Matter.Body>((p, i) => Matter.Bodies.circle(p.x * this.width, p.y * this.length, this.pocketRadius, { isSensor: true, isStatic: true, label: `pocket-${i}` }));
+      .map<Pocket>((p, i) => {
+        const body = Matter.Bodies.circle(p.x * this.width, p.y * this.length, this.pocketRadius,
+          { isSensor: true, isStatic: true, label: `pocket-${i}` }
+        );
+        return new Pocket(this.pocketRadius, body);
+      })
   }
 
   render(ctx: CanvasRenderingContext2D) {
@@ -114,11 +112,7 @@ export class PoolTable {
     ctx.fill();
     // Pockets
     ctx.beginPath();
-    this.pockets.forEach(pocket => {
-      ctx.moveTo(pocket.position.x + this.pocketRadius,pocket.position.y);
-      ctx.arc(pocket.position.x, pocket.position.y, this.pocketRadius, 0, TWO_PI);
-      ctx.fillStyle = '#000';
-    });
+    this.pockets.forEach(pocket => pocket.render(ctx));
     ctx.fill();
   }
 }

@@ -36,11 +36,11 @@ const ballOptions: Matter.IBodyDefinition = {
   frictionAir: .01,
   frictionStatic: .01,
   restitution: .99,
-  // density: .8,
-  density: 1.7  // g/cm^3
+  density: .8,
+  // density: 1.7  // g/cm^3
 };
-const ballRadius = 57.15 / 2; // mm
-// const ballRadius = 50;
+// const ballRadius = 57.15 / 2; // mm
+const ballRadius = 50;
 const ballRadiusTol = 0.127;  // introduces some imperfection
 for (let i = 0; i < 16; i++) {
   const r = (i === 0) ? 0.9375 * ballRadius : ballRadius + (2 * random() - 1) * ballRadiusTol / 2;  // mm 
@@ -52,14 +52,12 @@ for (let i = 0; i < 16; i++) {
  * Create the pool table boundary
  */
 const tableOptions: Matter.IBodyDefinition = { isStatic: true, friction: .1, restitution: .99 };
-const poolTable = new PoolTable(7 * 0.3048e3, 1.5 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
+const poolTable = new PoolTable(7 * 0.3048e3, 1.2 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
 
 const rack = new Rack();
 const cueBall = balls[0];
-const blackBall = balls[8];
-// const forceImpulse = new Array(5).fill(0).map((v, i) => sin(PI * ((i - 2) / 2 + 1) / 2));
-const forceImpulse = new Array(7).fill(0).map((v, i) => floor(255 * sin(PI * ((i - 3) / 3 + 1) / 2)));
-const maxForceMag = 100;
+const forceImpulse = new Array(5).fill(0).map((v, i) => floor(255 * sin(PI * ((i - 2) / 2 + 1) / 2)));
+const maxForceMag = 150;
 const scale = 1/3;
 let dragging = false;
 let shooting = false;
@@ -69,10 +67,13 @@ let shootForce: number;
 let tableImageData: ImageData;
 // console.log(forceImpulse);
 
-// Add the bodies for the table segments and balls to the world
+// Add the bodies for the table segments, pockets and balls to the world
 World.add(world, poolTable.edgeSegments);
-World.add(world, poolTable.pockets);
+World.add(world, poolTable.pockets.map(pocket => pocket.body));
 World.add(world, balls.map(b => b.body));
+
+// Ball sink  (container for all pocketed balls)
+const ballSink: Ball[] = [];
 
 // Handle collision events
 Matter.Events.on(engine, 'collisionActive', (event: Matter.IEventCollision<Matter.Engine>) => {
@@ -80,37 +81,40 @@ Matter.Events.on(engine, 'collisionActive', (event: Matter.IEventCollision<Matte
   // console.log('collisionActive', pairs);
   let a: Matter.Body, b: Matter.Body;
   for (let pair of pairs) {
-    a = pair.bodyA; // Pocket
-    b = pair.bodyB; // Ball
+    a = pair.bodyA;
+    b = pair.bodyB;
     const isPocketA = a.label.startsWith('pocket');
-    const isPocketB = b.label.startsWith('pocket');
-    // const isBallA = a.label.startsWith('ball');
-    // const isBallB = b.label.startsWith('ball');
-    if (isPocketA || isPocketB) {
+    const isPocketB = isPocketA ? false : b.label.startsWith('pocket');
+    const isBallA = isPocketA ? false : a.label.startsWith('ball');
+    const isBallB = isPocketB ? false : b.label.startsWith('ball');
+    if ((isPocketA || isPocketB) && (isBallA || isBallB)) {
+      // Ensure that (a) is a pocket and (b) is a ball
       if (!isPocketA) {
         [a, b] = [b, a];
       }
-      const pocketId = Number.parseInt(a.label.split('-')[1]);
-      const ballId = Number.parseInt(b.label.split('-')[1]);
-      // console.log(`Ball ${ballId} collided with Pocket ${pocketId}`);
-      // Determine if the collision is just a "touch" or if the ball is "inside" the pocket
-      const dx = a.position.x - b.position.x;
-      const dy = a.position.y - b.position.y;
-      const d2 = dx * dx + dy * dy;
-      // console.log([d2, poolTable.pocketRadius]);
-      if (d2 < poolTable.pocketRadius * poolTable.pocketRadius) {
-        console.log('Ball fell into the pocket!');
+      const ball = balls.find(ball => ball.body.id === b.id);
+      const pocket = poolTable.pockets.find(pocket => pocket.body.id === a.id);
+      // console.log(`Collision with Ball ${ball.body.id} and Pocket ${pocket.body.id}`);
+      if ( pocket.isBallInside(ball) ) {
+        ballSink.push(ball);
+        Matter.Body.setVelocity(ball.body, { x: 0, y: null });
+        Matter.Body.setAngularVelocity(ball.body, 0);
+        Matter.Body.setPosition(ball.body, {
+          x: ballSink.length * 3 * ball.radius,
+          y: ball.radius * 1.1
+        });
+        Matter.World.remove(world, ball.body);
       }
     }
   }
 });
 
-Matter.Events.on(engine, 'collisionEnd', (event: Matter.IEventCollision<Matter.Engine>) => {
-  const pairs = event.pairs;
-  // console.log('collisionEnd', pairs);
-});
+// Matter.Events.on(engine, 'collisionEnd', (event: Matter.IEventCollision<Matter.Engine>) => {
+//   const pairs = event.pairs;
+//   // console.log('collisionEnd', pairs);
+// });
 
-function drawBall(ball: Ball) {
+function drawBall(ball: Ball, buffer: ImageData) {
   // Local coordinate axes for this ball
   const ex = { x: ball.ocs.m00, y: ball.ocs.m10, z: ball.ocs.m20 };
   const ey = { x: ball.ocs.m01, y: ball.ocs.m11, z: ball.ocs.m21 };
@@ -184,15 +188,10 @@ function drawBall(ball: Ball) {
    * Step 1. Compute the ball's bounding box
    * Step 2. Find all visible faces
    */
-  const bxmin = scale * (x - ball.radius),
-        bxmax = scale * (x + ball.radius),
-        bymin = scale * (y - ball.radius),
-        bymax = scale * (y + ball.radius);
-
-  const xmin = floor(bxmin),
-        xmax = floor(bxmax),
-        ymin = floor(bymin),
-        ymax = floor(bymax);
+  // const bxmin = scale * (x - ball.radius),
+  //       bxmax = scale * (x + ball.radius),
+  //       bymin = scale * (y - ball.radius),
+  //       bymax = scale * (y + ball.radius);
 
   // ctx.beginPath();
   // ctx.strokeStyle = '#fff';
@@ -211,13 +210,6 @@ function drawBall(ball: Ball) {
           sxmax = floor(max(...p.map(v => v.x)) + 0),
           symin = floor(min(...p.map(v => v.y)) + 0),
           symax = floor(max(...p.map(v => v.y)) + 0);
-
-    /*
-    const sxmin = min(...p.map(v => v.x)),
-          sxmax = max(...p.map(v => v.x)),
-          symin = min(...p.map(v => v.y)),
-          symax = max(...p.map(v => v.y));
-    */
 
     // Transform the normal vectors of the unit sphere's faces to the ball's OCS
     // const nx = face.n.x * ex.x + face.n.y * ex.y + face.n.z * ex.z;
@@ -260,11 +252,15 @@ function drawBall(ball: Ball) {
     let srcIndex: number, targetIndex: number;
 
     yloop: for (let sy = symin; sy <= symax; sy++) {
-      if (sy < 0 || sy > tableImageData.height - 1) { continue yloop; }
+      if (sy < 0 || sy > buffer.height - 1) {
+        continue yloop;
+      }
       b0 = Pview[n1].y - sy;
 
       xloop: for (let sx = sxmin; sx <= sxmax; sx++) {
-        if (sx < 0 || sx > tableImageData.width - 1) { continue xloop; }
+        if (sx < 0 || sx > buffer.width - 1) {
+          continue xloop;
+        }
         a0 = Pview[n1].x - sx;
         c1 = a0 * b3 - a3 * b0 + a1 * b2 - a2 * b1;
         c2 = a0 * b2 - a2 * b0;
@@ -310,17 +306,17 @@ function drawBall(ball: Ball) {
         }
 
         srcIndex = (ix + iy * ball.texture.width)<<2;
-        targetIndex = (sx + sy * tableImageData.width)<<2;
+        targetIndex = (sx + sy * buffer.width)<<2;
 
         /**
          * Pixel shading
          * Uses the z-component (0<=nz<=1) of the face's normal vector (n) to adjust the shade of the texture color value at (ix,iy).
          * Assumes that there is a directional light above the pool table.
          */       
-        tableImageData.data[targetIndex] = nz * ball.texture.data[srcIndex];
-        tableImageData.data[targetIndex+1] = nz * ball.texture.data[srcIndex+1];
-        tableImageData.data[targetIndex+2] = nz * ball.texture.data[srcIndex+2];
-        tableImageData.data[targetIndex+3] = 255;
+        buffer.data[targetIndex] = nz * ball.texture.data[srcIndex];
+        buffer.data[targetIndex+1] = nz * ball.texture.data[srcIndex+1];
+        buffer.data[targetIndex+2] = nz * ball.texture.data[srcIndex+2];
+        buffer.data[targetIndex+3] = 255;
       }
     }
   });
@@ -333,15 +329,14 @@ Matter.Body.setPosition(cueBall.body, {
 });
 
 // Init balls
-const maxBallSize = 64;
-balls.forEach(ball => ball.init(ctx, maxBallSize));
+balls.forEach(ball => ball.init(ctx));
 
 // Stack balls 1-15 in the triangular rack with the rack's apex at the foot spot
 rack.setup();
 
-balls.filter(ball => ball.id !== 0).forEach(ball => {
+balls.filter(ball => ball.value !== 0).forEach(ball => {
   // find rack slot for this ball
-  const slot = rack.slots.find(slot => slot.ballId === ball.id);
+  const slot = rack.slots.find(slot => slot.ballId === ball.value);
   // set ball position
   Matter.Body.setPosition(ball.body, {
     x: poolTable.width / 2 + slot.u * ball.radius,
@@ -354,6 +349,15 @@ Engine.run(engine);
 
 function animate(time = 0) {  
   stats.begin();
+
+  if (shooting) {    
+    const force = Matter.Vector.mult(shootDir, (shootForce * forceImpulse[shootStep]) >> 8);
+    Matter.Body.applyForce(cueBall.body, cueBall.body.position, force);
+    shootStep++;
+    if (shootStep === forceImpulse.length) {
+      shooting = false;
+    }
+  }
 
   // console.log(cueBall.body.speed, cueBall.body.isSleeping);
   if (cueBall.body.speed < 1) {
@@ -374,41 +378,36 @@ function animate(time = 0) {
         shootDir = Matter.Vector.normalise(v);
         shootStep = 0;
         shooting = true;
-        console.log(shootForce);
+        // console.log(shootForce);
       }
     }
   }
 
-  if (shooting) {    
-    const force = Matter.Vector.mult(shootDir, (shootForce * forceImpulse[shootStep]) >> 8);
-    Matter.Body.applyForce(cueBall.body, cueBall.body.position, force);
-    shootStep++;
-    if (shootStep === forceImpulse.length) {
-      shooting = false;
-    }
-  }
-
-  ctx.fillStyle = '#333';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // ctx.fillStyle = '#333';
+  // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
   ctx.setTransform({ m11: scale, m12: 0, m21: 0, m22: scale, m41: 0, m42: 0 });
   poolTable.render(ctx);
-  // Render the cue-ball
-  ctx.beginPath();
-  ctx.arc(cueBall.body.position.x, cueBall.body.position.y, cueBall.radius, 0, TWO_PI);
-  ctx.fillStyle = '#fff';
-  ctx.fill();
-  ctx.restore();  
+  ctx.restore();
 
   // Get image data where to render the balls
-  tableImageData = ctx.getImageData(0, 0, scale * poolTable.width, scale * poolTable.length);  
+  tableImageData = ctx.getImageData(0, 0, scale * poolTable.width, scale * poolTable.length);
   // Render the object balls 1-15
-  balls.filter(ball => ball.id !== 0).forEach(ball => {
+  balls.filter(ball => !ball.isPocketed).forEach(ball => {
     ball.update();
-    drawBall(ball);
+    drawBall(ball, tableImageData);
   });
   ctx.putImageData(tableImageData, 0, 0);
+
+  // Render the ball sink containing all pocketed balls
+  ctx.beginPath();
+  ctx.fillRect(100, canvas.height - 50, canvas.width - 100, 50);
+  ctx.fillStyle = '#000';
+  ctx.fill();
+  const sinkImageData = ctx.getImageData(100, canvas.height - 50, canvas.width - 100, 50);  
+  ballSink.forEach(ball => drawBall(ball, sinkImageData));
+  ctx.putImageData(sinkImageData, 100, canvas.height - 50);
 
   /*
   // Output textures for balls 1-15

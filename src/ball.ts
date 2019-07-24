@@ -65,40 +65,30 @@ const ballColors = {
 
 export class Ball {
 
-  // Angular velocity for a rolling ball (in the direction of the linear motion)
+  /**
+   * Angular velocity for a rolling ball (in the direction of the linear motion)
+   */
   omega = 0;
-
-  // Object Coordinate System (OCS)
-  // ocs: Matrix4 = {
-  //   m00: 1, m01: 0, m02: 0, m03: 0,
-  //   m10: 0, m11: 1, m12: 0, m13: 0,
-  //   m20: 0, m21: 0, m22: 1, m23: 0,
-  //   m30: 0, m31: 0, m32: 0, m33: 1
-  // };
+  
+  /**
+   * Object Coordinate System (OCS)
+   */
   ocs: Matrix4;
 
-  // Image buffer
-  imgData: ImageData;
-  texture: ImageData;
-  
+  texture: ImageData;  
+  isPocketed: boolean;
+
   constructor(
-    public readonly id: number,     // Ball id 0-15
+    public readonly value: number,  // Ball value 0-15
     public readonly radius: number, // Ball radius in [mm]
     public readonly body: Matter.Body
   ) { }
-
-  init(ctx: CanvasRenderingContext2D, maxBallSize: number) {
+  
+  init(ctx: CanvasRenderingContext2D) {
+    this.omega = 0;
+    this.isPocketed = false;
     this.ocs = getRandomAxes();
-    this.texture = createBallTexture(this.id, ballColors[this.id], ctx);
-    this.imgData = ctx.createImageData(maxBallSize, maxBallSize); // all pixels initialized to (0,0,0,0)
-    // const n = maxBallSize * maxBallSize;
-    // for (let i = 0; i < n; i++) {
-    //   const k = i<<2;
-    //   this.imgData.data[k] = 255;
-    //   this.imgData.data[k+1] = 255;
-    //   this.imgData.data[k+2] = 255;
-    //   this.imgData.data[k+3] = 0;
-    // }
+    this.texture = createBallTexture(this.value, ballColors[this.value], ctx);
   }
 
   update() {
