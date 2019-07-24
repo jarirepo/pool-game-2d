@@ -1,4 +1,5 @@
 const { floor, random, sqrt } = Math;
+const SQRT3 = sqrt(3);
 
 interface Slot {
   u: number;
@@ -8,30 +9,25 @@ interface Slot {
 
 export class Rack {
 
-  slots: Slot[];
+  public readonly slots: Slot[] = [
+    { u: 0, v: 0, ballId: NaN },
+    { u: -1, v: SQRT3, ballId: NaN },
+    { u: 1, v: SQRT3, ballId: NaN },
+    { u: -2, v: 2 * SQRT3, ballId: NaN },
+    { u: 0, v: 2 * SQRT3, ballId: NaN },
+    { u: 2, v: 2 * SQRT3, ballId: NaN },
+    { u: -3, v: 3 * SQRT3, ballId: NaN },
+    { u: -1, v: 3 * SQRT3, ballId: NaN },
+    { u: 1, v: 3 * SQRT3, ballId: NaN },
+    { u: 3, v: 3 * SQRT3, ballId: NaN },
+    { u: -4, v: 4 * SQRT3, ballId: NaN },
+    { u: -2, v: 4 * SQRT3, ballId: NaN },
+    { u: 0, v: 4 * SQRT3, ballId: NaN },
+    { u: 2, v: 4 * SQRT3, ballId: NaN },
+    { u: 4, v: 4 * SQRT3, ballId: NaN }
+  ];
 
-  constructor() {
-    const du = 1;
-    const dv = sqrt(3);
-
-    this.slots = [
-      { u: 0, v: 0, ballId: NaN },
-      { u: -du, v: dv, ballId: NaN },
-      { u: du, v: dv, ballId: NaN },
-      { u: -2 * du, v: 2 * dv, ballId: NaN },
-      { u: 0, v: 2 * dv, ballId: NaN },
-      { u: 2 * du, v: 2 * dv, ballId: NaN },
-      { u: -3 * du, v: 3 * dv, ballId: NaN },
-      { u: -1 * du, v: 3 * dv, ballId: NaN },
-      { u: 1, v: 3 * dv, ballId: NaN },
-      { u: 3 * du, v: 3 * dv, ballId: NaN },
-      { u: -4 * du, v: 4 * dv, ballId: NaN },
-      { u: -2 * du, v: 4 * dv, ballId: NaN },
-      { u: 0, v: 4 * dv, ballId: NaN },
-      { u: 2 * du, v: 4 * dv, ballId: NaN },
-      { u: 4 * du, v: 4 * dv, ballId: NaN }
-    ];
-  }
+  constructor() { }
 
   setup() {
     // Shuffle ball ids 1-15
