@@ -371,8 +371,11 @@ function animate(time = 0) {
     }
   }
 
+  const hasSettled = poolTable.hasSettled();
+
   if (!dragging) {
-    if (mouse.button === 0 && poolTable.hasSettled()) { // left mouse button pressed
+    // if (mouse.button === 0 && poolTable.hasSettled()) { // left mouse button pressed
+    if (mouse.button === 0 && hasSettled) { // left mouse button pressed
       dragging = true;
     }
   } else {
@@ -390,7 +393,47 @@ function animate(time = 0) {
       // console.log(shootForce);
     }
   }
-  
+
+  // Render ball activity (during dragging)
+  //if (dragging) {
+    const Wmax = new Array(200).fill(0);
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height / 2);    
+    ctx.lineWidth = 1;
+
+    balls
+    .filter(ball => !ball.isPocketed)
+    // .filter(ball => [0, 8].indexOf(ball.value) !== -1)
+    .forEach((ball, index) => {
+      if (ball.activity.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, canvas.height / 2 - 10 * ball.activity[0]);
+        if (ball.activity[0] > Wmax[0]) {
+          Wmax[0] = ball.activity[0];
+        }        
+        for (let i = 1; i < ball.activity.length; i++) {
+          if (ball.activity[i] > Wmax[i]) {
+            Wmax[i] = ball.activity[i];
+          }
+          ctx.lineTo(canvas.width / 2 + 2 * i, canvas.height / 2 - 10 * ball.activity[i]);
+        }
+        ctx.strokeStyle = `rgba(${128  + 127 * index / 15}, ${128 * index / 15}, 64, .5)`;
+        ctx.stroke();  
+      }
+    });
+    // Plot global max
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, canvas.height / 2 - 10 * Wmax[0]);
+    for (let i = 1; i < Wmax.length; i++) {
+      ctx.lineTo(canvas.width / 2 + 2 * i, canvas.height / 2 - 10 * Wmax[i]);
+    }
+    ctx.strokeStyle = 'rgba(0,128,64,.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+  //}
+
   // ctx.fillStyle = '#333';
   // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -429,6 +472,7 @@ function animate(time = 0) {
   const sinkImageData = ctx.getImageData(100, canvas.height - 50, canvas.width - 100, 50);  
   ballSink.forEach(ball => drawBall(ball, sinkImageData));
   ctx.putImageData(sinkImageData, 100, canvas.height - 50);
+  
 
   /*
   // Output textures for balls 1-15

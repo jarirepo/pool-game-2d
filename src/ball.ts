@@ -78,6 +78,8 @@ export class Ball {
   texture: ImageData;  
   isPocketed: boolean;
 
+  activity: number[] = [];
+
   constructor(
     public readonly value: number,  // Ball value 0-15
     public readonly radius: number, // Ball radius in [mm]
