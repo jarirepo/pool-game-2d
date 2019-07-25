@@ -1,8 +1,6 @@
 import * as Matter from 'matter-js';
 import { Ball } from './ball';
-
-const { PI, sqrt } = Math;
-const TWO_PI = 2 * PI;
+import { Constants } from './constants';
 
 export class Pocket {
 
@@ -26,7 +24,7 @@ export class Pocket {
 
   render(ctx: CanvasRenderingContext2D): void {
     ctx.moveTo(this.body.position.x + this.radius, this.body.position.y);
-    ctx.arc(this.body.position.x, this.body.position.y, this.radius, 0, TWO_PI);
+    ctx.arc(this.body.position.x, this.body.position.y, this.radius, 0, Constants.TWO_PI);
     ctx.fillStyle = '#000';
   }
 }

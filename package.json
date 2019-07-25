@@ -1,6 +1,6 @@
 {
   "name": "pool-game-2d",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Eight-ball pool game",
   "scripts": {
     "start": "parcel src/index.html -p 3000 -o",

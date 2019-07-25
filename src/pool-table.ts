@@ -2,16 +2,14 @@ import * as Matter from 'matter-js';
 import { mmult } from './vector3d';
 import { Polyline } from './polyline';
 import { Pocket } from './pocket';
+import { Constants } from './constants';
 
 // https://github.com/liabru/matter-js/issues/559
 // window['decomp'] = require('poly-decomp');
 import * as decomp from 'poly-decomp';
 window['decomp'] = decomp;
 
-const { PI, sqrt, tan } = Math;
-const TWO_PI = 2 * PI;
-const HALF_PI = PI / 2;
-const SQRT_2 = sqrt(2);
+const { tan } = Math;
 
 export class PoolTable {
 
@@ -34,8 +32,8 @@ export class PoolTable {
     this.cushionWidth = this.pocketRadius / 2;  // gives 45 degree angle
 
     const cushionRadius = this.cushionWidth * 2;  // < approx. max. 3 times the cusion width to prevent error
-    const chamferLen = this.cushionWidth * SQRT_2;
-    const chamferLineLen = cushionRadius / tan(3 * PI / 8);
+    const chamferLen = this.cushionWidth * Constants.SQRT_2;
+    const chamferLineLen = cushionRadius / tan(3 * Constants.PI / 8);
 
     if (chamferLineLen > chamferLen) {
       console.log('Rail cushion radius is too large!');
@@ -53,10 +51,10 @@ export class PoolTable {
     // Filleted rail cushion
     const cushionSegment = new Polyline()
       .lineTo(this.width - 2 * this.pocketRadius, 0)
-      .lineTo(this.width - 2 * this.pocketRadius - (chamferLen - chamferLineLen) * SQRT_2 / 2, (chamferLen - chamferLineLen) * SQRT_2 / 2)
+      .lineTo(this.width - 2 * this.pocketRadius - (chamferLen - chamferLineLen) * Constants.SQRT_2 / 2, (chamferLen - chamferLineLen) * Constants.SQRT_2 / 2)
       .arcTo(this.width - 2 * this.pocketRadius - this.cushionWidth - chamferLineLen, this.cushionWidth)
       .lineTo(this.cushionWidth + chamferLineLen, this.cushionWidth)
-      .arcTo(this.cushionWidth - chamferLineLen * SQRT_2 / 2, this.cushionWidth - chamferLineLen * SQRT_2 / 2);
+      .arcTo(this.cushionWidth - chamferLineLen * Constants.SQRT_2 / 2, this.cushionWidth - chamferLineLen * Constants.SQRT_2 / 2);
 
     console.log('Rail cushion polyline:', cushionSegment);
     
@@ -104,13 +102,13 @@ export class PoolTable {
     this.boundary = new Path2D();
     this.boundary.moveTo(pocketRadius, 0);
     this.boundary.lineTo(this.width - pocketRadius, 0);
-    this.boundary.arc(this.width - pocketRadius, pocketRadius, pocketRadius, -HALF_PI, 0);
+    this.boundary.arc(this.width - pocketRadius, pocketRadius, pocketRadius, -Constants.HALF_PI, 0);
     this.boundary.lineTo(this.width, this.length - pocketRadius);
-    this.boundary.arc(this.width - pocketRadius, this.length - pocketRadius, pocketRadius, 0, HALF_PI);
+    this.boundary.arc(this.width - pocketRadius, this.length - pocketRadius, pocketRadius, 0, Constants.HALF_PI);
     this.boundary.lineTo(pocketRadius, this.length);
-    this.boundary.arc(pocketRadius, this.length - pocketRadius, pocketRadius, HALF_PI, PI);
+    this.boundary.arc(pocketRadius, this.length - pocketRadius, pocketRadius, Constants.HALF_PI, Constants.PI);
     this.boundary.lineTo(0, pocketRadius);
-    this.boundary.arc(pocketRadius, pocketRadius, pocketRadius, PI, -HALF_PI);
+    this.boundary.arc(pocketRadius, pocketRadius, pocketRadius, Constants.PI, -Constants.HALF_PI);
         
     // Create rail cushion boundaries (Path2D objects) for rendering
     this.cushionPaths = this.cushionBodies.map(body => {
@@ -139,11 +137,11 @@ export class PoolTable {
     ctx.fill(this.boundary);
     // Foot spot (rack position)
     ctx.beginPath();
-    ctx.arc(this.width / 2, this.length / 4, 10, 0, TWO_PI);
+    ctx.arc(this.width / 2, this.length / 4, 10, 0, Constants.TWO_PI);
     ctx.fillStyle = 'rgba(0,64,0,.8)';
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(this.width / 2, this.length / 4, 5, 0, TWO_PI);
+    ctx.arc(this.width / 2, this.length / 4, 5, 0, Constants.TWO_PI);
     ctx.fillStyle = 'rgba(0,96,0,1)';
     ctx.fill();
     // Cue-ball line

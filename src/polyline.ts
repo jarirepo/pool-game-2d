@@ -1,7 +1,7 @@
 import { Vector3D, Matrix4, rotateZ, createRotationMatrixZ, applyTransform, angleXY, rotationDirectionXY } from './vector3d';
+import { Constants } from './constants';
 
 const { abs, sqrt, acos, asin, sign, cos, sin, atan, atan2, PI } = Math;
-const R2D = 180 / PI;
 
 export class Polyline {
   /** Generated vertices */
@@ -75,7 +75,7 @@ export class Polyline {
       this.p.push(pt);
     }
 
-    console.log({ x, y, a, t0, b, tau: tau * R2D, dtau: dtau * R2D, tu, p: this.p[this.p.length-1] })
+    console.log({ x, y, a, t0, b, tau: tau * Constants.R2D, dtau: dtau * Constants.R2D, tu, p: this.p[this.p.length-1] })
     
     // Update endpoint direction vector
     const te = applyTransform(tu, T3);

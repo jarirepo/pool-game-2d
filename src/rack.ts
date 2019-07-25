@@ -1,5 +1,6 @@
-const { floor, random, sqrt } = Math;
-const SQRT3 = sqrt(3);
+import { Constants } from './constants';
+
+const { floor, random } = Math;
 
 interface Slot {
   u: number;
@@ -11,20 +12,20 @@ export class Rack {
 
   public readonly slots: Slot[] = [
     { u: 0, v: 0, ballId: NaN },
-    { u: -1, v: SQRT3, ballId: NaN },
-    { u: 1, v: SQRT3, ballId: NaN },
-    { u: -2, v: 2 * SQRT3, ballId: NaN },
-    { u: 0, v: 2 * SQRT3, ballId: NaN },
-    { u: 2, v: 2 * SQRT3, ballId: NaN },
-    { u: -3, v: 3 * SQRT3, ballId: NaN },
-    { u: -1, v: 3 * SQRT3, ballId: NaN },
-    { u: 1, v: 3 * SQRT3, ballId: NaN },
-    { u: 3, v: 3 * SQRT3, ballId: NaN },
-    { u: -4, v: 4 * SQRT3, ballId: NaN },
-    { u: -2, v: 4 * SQRT3, ballId: NaN },
-    { u: 0, v: 4 * SQRT3, ballId: NaN },
-    { u: 2, v: 4 * SQRT3, ballId: NaN },
-    { u: 4, v: 4 * SQRT3, ballId: NaN }
+    { u: -1, v: Constants.SQRT_3, ballId: NaN },
+    { u: 1, v: Constants.SQRT_3, ballId: NaN },
+    { u: -2, v: 2 * Constants.SQRT_3, ballId: NaN },
+    { u: 0, v: 2 * Constants.SQRT_3, ballId: NaN },
+    { u: 2, v: 2 * Constants.SQRT_3, ballId: NaN },
+    { u: -3, v: 3 * Constants.SQRT_3, ballId: NaN },
+    { u: -1, v: 3 * Constants.SQRT_3, ballId: NaN },
+    { u: 1, v: 3 * Constants.SQRT_3, ballId: NaN },
+    { u: 3, v: 3 * Constants.SQRT_3, ballId: NaN },
+    { u: -4, v: 4 * Constants.SQRT_3, ballId: NaN },
+    { u: -2, v: 4 * Constants.SQRT_3, ballId: NaN },
+    { u: 0, v: 4 * Constants.SQRT_3, ballId: NaN },
+    { u: 2, v: 4 * Constants.SQRT_3, ballId: NaN },
+    { u: 4, v: 4 * Constants.SQRT_3, ballId: NaN }
   ];
 
   constructor() { }

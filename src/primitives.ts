@@ -1,4 +1,5 @@
 import { Vector3D } from './vector3d';
+import { Constants } from './constants';
 
 interface Face {
   v: number[];    // vertex indices
@@ -7,7 +8,7 @@ interface Face {
 }
 
 const { cos, sin, asin, atan2, PI, sqrt } = Math;
-const TWO_PI = 2 * PI;
+
 const MSIZE = 16;
 const NSIZE = 32;
 
@@ -20,11 +21,11 @@ for (let i = 0; i <= MSIZE; i++) {
   const sinTheta = sin(theta);
   const cosTheta = cos(theta);
   for (let j = 0; j <= NSIZE; j++) {
-    const phi = j / NSIZE * TWO_PI;
+    const phi = j / NSIZE * Constants.TWO_PI;
     const x = sinTheta * cos(phi);
     const y = sinTheta * sin(phi);
     const z = cosTheta;
-    const u = 0.5 + atan2(z, x) / TWO_PI;
+    const u = 0.5 + atan2(z, x) / Constants.TWO_PI;
     const v = 0.5 - asin(y) / PI;
     vertices.push({ x, y, z, u, v });
   }

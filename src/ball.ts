@@ -1,9 +1,9 @@
 import * as Matter from 'matter-js';
 import { Vector3D, Matrix4, mmult4, mmult4all, getRandomAxes } from './vector3d';
 import { Color, Colors } from './colors';
+import { Constants } from './constants';
 
-const { PI, cos, sin, atan2 } = Math;
-const TWO_PI = 2 * PI;
+const { cos, sin, atan2 } = Math;
 
 const ballTextureWidth = 256,
       ballTextureHeight = 128;
@@ -19,7 +19,7 @@ function createBallTexture(value: number, color: Color, ctx: CanvasRenderingCont
   const drawText = (x: number) => {
     ctx.beginPath();
     ctx.fillStyle = '#fff';
-    ctx.arc(x, h / 2, r, 0, TWO_PI);
+    ctx.arc(x, h / 2, r, 0, Constants.TWO_PI);
     ctx.fill();
     ctx.fillStyle = '#000';
     ctx.fillText(value.toString(), x, h / 2 + 4);  

@@ -7,7 +7,6 @@ import { PoolTable } from './pool-table';
 import { Polyline } from './polyline';
 
 const { PI, random, floor, min, max, sqrt, sin } = Math;
-const TWO_PI = 2 * PI;
 
 const stats = new Stats();
 stats.showPanel( 0 ); // fps
