@@ -1,8 +1,9 @@
 import * as Matter from 'matter-js';
+import { Constants } from './constants';
 import { mmult } from './vector3d';
 import { Polyline } from './polyline';
 import { Pocket } from './pocket';
-import { Constants } from './constants';
+import { Ball } from './ball';
 
 // https://github.com/liabru/matter-js/issues/559
 // window['decomp'] = require('poly-decomp');
@@ -24,6 +25,7 @@ export class PoolTable {
   pockets: Pocket[];
 
   constructor(
+    public readonly balls: Ball[],
     public readonly length: number,
     public readonly pocketRadius: number,
     public readonly options: Matter.IBodyDefinition
@@ -129,6 +131,16 @@ export class PoolTable {
         );
         return new Pocket(this.pocketRadius, body);
       });
+  }
+
+  /**
+   * Returns true if all non-pocketed balls have stopped rolling
+   */
+  hasSettled(): boolean {
+    return this.balls
+      .filter(ball => !ball.isPocketed)
+      .map(ball => !ball.isRolling())
+      .reduce((result, val) => result && val, true);
   }
 
   render(ctx: CanvasRenderingContext2D) {

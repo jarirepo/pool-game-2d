@@ -52,7 +52,7 @@ for (let i = 0; i < 16; i++) {
  * Create the pool table boundary
  */
 const tableOptions: Matter.IBodyDefinition = { isStatic: true, friction: .1, restitution: .99 };
-const poolTable = new PoolTable(7 * 0.3048e3, 1.5 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
+const poolTable = new PoolTable(balls, 7 * 0.3048e3, 1.5 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
 
 const rack = new Rack();
 const cueBall = balls[0];
@@ -371,30 +371,26 @@ function animate(time = 0) {
     }
   }
 
-  // console.log(cueBall.body.speed, cueBall.body.isSleeping);
-  if (cueBall.body.speed < 1) {
-    // Matter.Body.setVelocity(cueBall.body, { x: 0, y: 0 });
-    if (!dragging) {
-      if (mouse.button === 0) { // left mouse button pressed
-        dragging = true;
-      }
-    } else {
-      if (mouse.button === -1) {  // mouse button released      
-        dragging = false;
-        const m: Matter.Vector = {
-          x: mouse.mouseupPosition.x / scale,
-          y: mouse.mouseupPosition.y / scale
-        };
-        const v = Matter.Vector.sub(cueBall.body.position, m);
-        shootForce = min(floor(0.5 * Matter.Vector.magnitude(v)), maxForceMag);
-        shootDir = Matter.Vector.normalise(v);
-        shootStep = 0;
-        shooting = true;
-        // console.log(shootForce);
-      }
+  if (!dragging) {
+    if (mouse.button === 0 && poolTable.hasSettled()) { // left mouse button pressed
+      dragging = true;
+    }
+  } else {
+    if (mouse.button === -1) {  // mouse button released      
+      dragging = false;
+      const m: Matter.Vector = {
+        x: mouse.mouseupPosition.x / scale,
+        y: mouse.mouseupPosition.y / scale
+      };
+      const v = Matter.Vector.sub(cueBall.body.position, m);
+      shootForce = min(floor(0.5 * Matter.Vector.magnitude(v)), maxForceMag);
+      shootDir = Matter.Vector.normalise(v);
+      shootStep = 0;
+      shooting = true;
+      // console.log(shootForce);
     }
   }
-
+  
   // ctx.fillStyle = '#333';
   // ctx.fillRect(0, 0, canvas.width, canvas.height);
 

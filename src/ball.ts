@@ -84,23 +84,30 @@ export class Ball {
     public readonly body: Matter.Body
   ) { }
   
-  init(ctx: CanvasRenderingContext2D) {
+  init(ctx: CanvasRenderingContext2D): void {
     this.omega = 0;
     this.isPocketed = false;
     this.ocs = getRandomAxes();
     this.texture = createBallTexture(this.value, ballColors[this.value], ctx);
   }
 
-  update() {
-    /**
-     * Angular velocity:
-     *  ds = v * dt
-     *  omega = ds / (2*pi*r) * 2*pi / dt = v / r
-     * 
-     * speed in [m/s], see https://github.com/liabru/matter-js/issues/179
-     */
-    // this.omega = 1e3 * this.body.speed / this.radius;
-    this.omega = 1e2 * this.body.speed / this.radius; // gives nuch better rolling effect!
+  isRolling(): boolean {
+    return this.body.speed > .5;    
+  }
+
+  isSpinning(): boolean {
+    return this.omega > 1;  // ???
+  }
+
+  /**
+   * Angular velocity:
+   *  ds = v * dt
+   *  omega = ds / (2*pi*r) * 2*pi / dt = v / r
+   * 
+   * speed in [m/s], see https://github.com/liabru/matter-js/issues/179
+   */
+  update(): void {
+    this.omega = 1e2 * this.body.speed / this.radius; // scaling by 100 produces a nuch better rolling effect!
 
     if (this.body.speed < .1) {
       return;
