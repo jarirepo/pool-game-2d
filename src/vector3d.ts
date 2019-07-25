@@ -1,4 +1,4 @@
-const { PI, random, cos, sin } = Math;
+const { PI, random, cos, sin, atan2, sign } = Math;
 
 export interface Vector3D {
   x: number;
@@ -82,4 +82,36 @@ export function mmult(P: number[][], T: number[][]): number[][] {
     Q[i] = [ x, y, w ];
   }
   return Q;
+}
+
+export function createRotationMatrixZ(angle: number): Matrix4 {
+  const cosa = cos(angle);
+  const sina = sin(angle);
+  return {
+    m00: cosa, m01: sina, m02: 0, m03: 0,
+    m10: -sina, m11: cosa, m12: 0, m13: 0,
+    m20: 0, m21: 0, m22: 1, m23: 0,
+    m30: 0, m31: 0, m32: 0, m33: 1
+  };
+}
+
+export function applyTransform(v: Vector3D, T: Matrix4): Vector3D {
+  return {
+    x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20,
+    y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21,
+    z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
+  };
+}
+
+export function rotateZ(v: Vector3D, angle: number): Vector3D {
+  const T = createRotationMatrixZ(angle);
+  return applyTransform(v, T);
+}
+
+export function angleXY(v: Vector3D): number {
+  return atan2(v.y, v.x);
+}
+
+export function rotationDirectionXY(from: Vector3D, to: Vector3D): number {
+  return sign(from.x * to.y - from.y * to.x);
 }

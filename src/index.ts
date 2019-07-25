@@ -4,6 +4,7 @@ import { Primitives } from './primitives';
 import { Ball } from './ball';
 import { Rack } from './rack';
 import { PoolTable } from './pool-table';
+import { Polyline } from './polyline';
 
 const { PI, random, floor, min, max, sqrt, sin } = Math;
 const TWO_PI = 2 * PI;
@@ -36,11 +37,11 @@ const ballOptions: Matter.IBodyDefinition = {
   frictionAir: .01,
   frictionStatic: .01,
   restitution: .99,
-  density: .8,
-  // density: 1.7  // g/cm^3
+  // density: .8,
+  density: 1.7  // g/cm^3
 };
-// const ballRadius = 57.15 / 2; // mm
-const ballRadius = 50;
+const ballRadius = 57.15 / 2; // mm
+// const ballRadius = 50;
 const ballRadiusTol = 0.127;  // introduces some imperfection
 for (let i = 0; i < 16; i++) {
   const r = (i === 0) ? 0.9375 * ballRadius : ballRadius + (2 * random() - 1) * ballRadiusTol / 2;  // mm 
@@ -57,7 +58,7 @@ const poolTable = new PoolTable(7 * 0.3048e3, 1.2 * ballRadius, tableOptions);  
 const rack = new Rack();
 const cueBall = balls[0];
 const forceImpulse = new Array(5).fill(0).map((v, i) => floor(255 * sin(PI * ((i - 2) / 2 + 1) / 2)));
-const maxForceMag = 150;
+const maxForceMag = 200;
 const scale = 1/3;
 let dragging = false;
 let shooting = false;
@@ -68,9 +69,10 @@ let tableImageData: ImageData;
 // console.log(forceImpulse);
 
 // Add the bodies for the table segments, pockets and balls to the world
-World.add(world, poolTable.edgeSegments);
+World.add(world, poolTable.cushionBodies);
 World.add(world, poolTable.pockets.map(pocket => pocket.body));
 World.add(world, balls.map(b => b.body));
+console.log('World bodies:', world);
 
 // Ball sink  (container for all pocketed balls)
 const ballSink: Ball[] = [];
@@ -344,6 +346,16 @@ balls.filter(ball => ball.value !== 0).forEach(ball => {
   });
 });
 
+// Polyline test
+// const pline = new Polyline(0, 0)
+//   .lineTo(500, 0)
+//   .arcTo(750, 250)
+//   .lineTo(1000, 250)
+//   .arcTo(1000,500)
+//   .lineTo(500, 500)
+//   .close();
+// console.log(pline);
+
 // Start the physics engine
 Engine.run(engine);
 
@@ -385,6 +397,19 @@ function animate(time = 0) {
 
   // ctx.fillStyle = '#333';
   // ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Output test polyline
+  // ctx.save();
+  // ctx.setTransform({ m11: .75, m12: 0, m21: 0, m22: -.75, m41: canvas.width / 3, m42: canvas.height * .75 });
+  // ctx.beginPath();
+  // ctx.moveTo(pline.p[0].x, pline.p[0].y);
+  // for (let i = 1; i < pline.p.length; i++) {
+  //   ctx.lineTo(pline.p[i].x, pline.p[i].y);
+  // }
+  // ctx.strokeStyle = '#fff';
+  // ctx.lineWidth = 1;
+  // ctx.stroke();
+  // ctx.restore();
 
   ctx.save();
   ctx.setTransform({ m11: scale, m12: 0, m21: 0, m22: scale, m41: 0, m42: 0 });
