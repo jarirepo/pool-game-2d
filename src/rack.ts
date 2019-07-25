@@ -31,7 +31,7 @@ export class Rack {
   constructor() { }
 
   setup() {
-    // Shuffle ball ids 1-15
+    // Shuffle ball values 1-15
     const ids = new Array(15).fill(0).map((v, i) => 1 + i);
     for (let i = ids.length - 1; i > 0; i--) {
       const j = floor(random() * (i + 1));
@@ -43,11 +43,11 @@ export class Rack {
     // Assign ball #8 to the center of the rack (slot 4)
     const i8 = ids.indexOf(8);
     [ids[i8], ids[4]] = [ids[4], ids[i8]];
-    // Assign a solid (<8) and a striped ball (>8) to the rear corners of the rack (slot 11 and 14)
-    const n11 = ids[11];
+    // Assign a solid (<8) and a striped ball (>8) to the rear corners of the rack (slot 10 and 14)
+    const n10 = ids[10];
     const n14 = ids[14];
-    if ((n11 < 8 && n14 < 8) || (n11 > 8 && n14 > 8)) {
-      for (let k of [1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 13]) {
+    if ((n10 < 8 && n14 < 8) || (n10 > 8 && n14 > 8)) {
+      for (let k of [1, 2, 3, 5, 6, 7, 8, 9, 11, 12, 13]) {
         let val = ids[k];
         if ((n14 < 8 && val > 8) || (n14 > 8 && val < 8)) {
           [ids[14], ids[k]] = [ids[k], ids[14]];

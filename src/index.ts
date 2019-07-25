@@ -52,7 +52,7 @@ for (let i = 0; i < 16; i++) {
  * Create the pool table boundary
  */
 const tableOptions: Matter.IBodyDefinition = { isStatic: true, friction: .1, restitution: .99 };
-const poolTable = new PoolTable(7 * 0.3048e3, 1.2 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
+const poolTable = new PoolTable(7 * 0.3048e3, 1.5 * ballRadius, tableOptions);  // length (ft -> mm), hole radius (mm)
 
 const rack = new Rack();
 const cueBall = balls[0];
@@ -334,6 +334,7 @@ balls.forEach(ball => ball.init(ctx));
 
 // Stack balls 1-15 in the triangular rack with the rack's apex at the foot spot
 rack.setup();
+console.log('Ball rack:', rack);
 
 balls.filter(ball => ball.value !== 0).forEach(ball => {
   // find rack slot for this ball
