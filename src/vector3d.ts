@@ -13,6 +13,14 @@ export interface Matrix4 {
   m30: number; m31: number; m32: number; m33: number;
 }
 
+/** World Coordinate System */
+export const WCS: Matrix4 = {
+  m00: 1, m01: 0, m02: 0, m03: 0,
+  m10: 0, m11: 1, m12: 0, m13: 0,
+  m20: 0, m21: 0, m22: 1, m23: 0,
+  m30: 0, m31: 0, m32: 0, m33: 1
+};
+
 export function mmult4(a: Matrix4, b: Matrix4): Matrix4 {
   return {
     m00: a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20 + a.m03 * b.m30,
@@ -97,9 +105,9 @@ export function createRotationMatrixZ(angle: number): Matrix4 {
 
 export function applyTransform(v: Vector3D, T: Matrix4): Vector3D {
   return {
-    x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20,
-    y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21,
-    z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
+    x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20 + T.m30,
+    y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21 + T.m31,
+    z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22 + T.m32
   };
 }
 
@@ -114,4 +122,8 @@ export function angleXY(v: Vector3D): number {
 
 export function rotationDirectionXY(from: Vector3D, to: Vector3D): number {
   return sign(from.x * to.y - from.y * to.x);
+}
+
+export function dot(a: Vector3D, b: Vector3D): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
 }

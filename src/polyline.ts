@@ -3,6 +3,9 @@ import { Constants } from './constants';
 
 const { abs, sqrt, acos, asin, sign, cos, sin, atan, atan2, PI } = Math;
 
+/**
+ * Helper class to allow generating complex shapes
+ */
 export class Polyline {
   /** Generated vertices */
   public readonly p: Vector3D[] = [];
@@ -15,7 +18,7 @@ export class Polyline {
   }
 
   public lineTo(x: number, y: number): Polyline {
-    console.log('lineTo');
+    // console.log('lineTo');
     const d: Vector3D = {
       x: x - this.p[this.p.length - 1].x,
       y: y - this.p[this.p.length - 1].y,
@@ -38,7 +41,7 @@ export class Polyline {
    * http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.87.3282&rep=rep1&type=pdf
    */
   public arcTo(x: number, y: number): Polyline {
-    console.log('arcTo');
+    // console.log('arcTo');
     if (this.v.x === 0 && this.v.y === 0 && this.v.z === 0) {
       console.log('Invalid direction vector');
       return this;
@@ -75,7 +78,7 @@ export class Polyline {
       this.p.push(pt);
     }
 
-    console.log({ x, y, a, t0, b, tau: tau * Constants.R2D, dtau: dtau * Constants.R2D, tu, p: this.p[this.p.length-1] })
+    // console.log({ x, y, a, t0, b, tau: tau * Constants.R2D, dtau: dtau * Constants.R2D, tu, p: this.p[this.p.length-1] })
     
     // Update endpoint direction vector
     const te = applyTransform(tu, T3);

@@ -56,6 +56,12 @@ The balls are internally represented by spheres, each having their own object co
   <figcaption>Shaded balls</figcaption>
 </figure>
 
+## Horizontal pool table alignment
+<figure class="image">
+  <img src="screenshots/poolgame-horizontal.png" alt="Horizontal pool table" />
+  <figcaption>Horizontal pool table alignment</figcaption>
+</figure>
+
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
 [eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
 [bilinear-interp]: https://en.wikipedia.org/wiki/Bilinear_interpolation

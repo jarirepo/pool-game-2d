@@ -8,7 +8,10 @@ interface Slot {
   ballId: number;
 }
 
-export class Rack {
+/**
+ * Helper class for the shuffling and positioning of the balls in the rack
+ */
+export class Rack  {
 
   public readonly slots: Slot[] = [
     { u: 0, v: 0, ballId: NaN },
@@ -48,7 +51,7 @@ export class Rack {
     const n14 = ids[14];
     if ((n10 < 8 && n14 < 8) || (n10 > 8 && n14 > 8)) {
       for (let k of [1, 2, 3, 5, 6, 7, 8, 9, 11, 12, 13]) {
-        let val = ids[k];
+        const val = ids[k];
         if ((n14 < 8 && val > 8) || (n14 > 8 && val < 8)) {
           [ids[14], ids[k]] = [ids[k], ids[14]];
           break;
