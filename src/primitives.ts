@@ -25,7 +25,7 @@ for (let i = 0; i <= MSIZE; i++) {
     const x = sinTheta * cos(phi);
     const y = sinTheta * sin(phi);
     const z = cosTheta;
-    const u = 0.5 + atan2(z, x) / Constants.TWO_PI;
+    const u = 0.5 + atan2(x, z) / Constants.TWO_PI;
     const v = 0.5 - asin(y) / PI;
     vertices.push({ x, y, z, u, v });
   }
