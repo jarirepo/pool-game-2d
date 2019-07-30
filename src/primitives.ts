@@ -7,7 +7,7 @@ interface Face {
   e: Vector3D[];  // edge direction vectors
 }
 
-const { cos, sin, asin, atan2, PI, sqrt } = Math;
+const { cos, sin, asin, atan2, PI, sqrt, floor, pow } = Math;
 
 const MSIZE = 16;
 const NSIZE = 32;
@@ -60,12 +60,13 @@ for (let i = 0; i < MSIZE; i++) {
     w.y /= wmag;
     w.z /= wmag;
     // Edge direction vectors
-    const e: Vector3D[] = [
-      { x: vertices[n2].x - vertices[n1].x, y: vertices[n2].y - vertices[n1].y, z: vertices[n2].z - vertices[n1].z },
-      { x: vertices[n3].x - vertices[n2].x, y: vertices[n3].y - vertices[n2].y, z: vertices[n3].z - vertices[n2].z },
-      { x: vertices[n4].x - vertices[n3].x, y: vertices[n4].y - vertices[n3].y, z: vertices[n4].z - vertices[n3].z },
-      { x: vertices[n1].x - vertices[n4].x, y: vertices[n1].y - vertices[n4].y, z: vertices[n1].z - vertices[n4].z }
-    ].map(v => {
+    // const e: Vector3D[] = [
+    //   { x: vertices[n2].x - vertices[n1].x, y: vertices[n2].y - vertices[n1].y, z: vertices[n2].z - vertices[n1].z },
+    //   { x: vertices[n3].x - vertices[n2].x, y: vertices[n3].y - vertices[n2].y, z: vertices[n3].z - vertices[n2].z },
+    //   { x: vertices[n4].x - vertices[n3].x, y: vertices[n4].y - vertices[n3].y, z: vertices[n4].z - vertices[n3].z },
+    //   { x: vertices[n1].x - vertices[n4].x, y: vertices[n1].y - vertices[n4].y, z: vertices[n1].z - vertices[n4].z }
+    // ];
+    const e: Vector3D[] = [].map(v => {
       const m = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
       return { x: v.x / m, y: v.y / m, z: v.z / m };
     });
@@ -79,10 +80,52 @@ for (let i = 0; i < MSIZE; i++) {
 
 // console.log(faces);
 
-export namespace Primitives {
+/**
+ * Removal of duplicate vertices and re-mapping of vertex indices.
+ */
+const DTOL = 1e-12;
+const N = vertices.length;
+const indexList = vertices.map((_, i) => i);
+const newIndex = vertices.map((_, i) => i);
+let k = 0;
 
+outerLoop: for (let i = 0; i < N - 1; i++) {
+  if (indexList[i] !== i) { continue outerLoop; }
+  newIndex[i] = k;
+  const v1 = vertices[i];
+  for (let j = i + 1; j < N; j++) {
+    const v2 = vertices[j];
+    const d2 = pow(v1.x - v2.x, 2) + pow(v1.y - v2.y, 2) + pow(v1.z - v2.z, 2);
+    if (d2 < DTOL) {
+      indexList[j] = i;   // Vertex (j) is a duplicate of vertex (i)
+      newIndex[j] = k;
+    }
+  }
+  k++;
+}
+
+// Update vertex indices for the faces
+faces.forEach(face => {
+  face.v = face.v.map(i => newIndex[i]);
+});
+
+// const compressedVertices = vertices.map(v => ({
+//   x: floor(127.5 * (1 + v.x)),
+//   y: floor(127.5 * (1 + v.y)),
+//   z: floor(127.5 * (1 + v.z))
+// }));
+// console.log({
+//   originalVertextCount: vertices.length,
+//   indexList,
+//   newIndex,
+//   faces,
+//   originalVertices: compressedVertices,  
+//   vertices: compressedVertices.filter((v, i) => indexList[i] === i)
+// });
+
+export namespace Primitives {
   export const Sphere = {
-    data: vertices,
+    data: vertices.filter((v, i) => indexList[i] === i),
     faces
   };
 }
