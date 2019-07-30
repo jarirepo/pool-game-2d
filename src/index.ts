@@ -5,9 +5,9 @@ import { Rack } from './rack';
 import { PoolTable } from './shapes/pool-table';
 import { Viewport } from './viewport';
 import { Scene } from './scene';
-import { Vector3D, applyTransform, mmult4 } from './vector3d';
+import { Vector3D, mmult4 } from './vector3d';
 
-const { PI, random, floor, min, max, sqrt, sin } = Math;
+const { PI, random, floor, min, sin } = Math;
 
 const stats = new Stats();
 stats.showPanel( 0 ); // fps
@@ -21,7 +21,6 @@ world.gravity.y = 0;
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d');
-// const mouse = Mouse.create(canvas);
 
 document.body.focus({ preventScroll: true });
 
@@ -50,11 +49,9 @@ const ballOptions: Matter.IBodyDefinition = {
   frictionAir: .01,
   frictionStatic: .01,
   restitution: .99,
-  // density: .8,
   density: 1.7  // g/cm^3
 };
 const ballRadius = 57.15 / 2; // mm
-// const ballRadius = 50;
 const ballRadiusTol = 0.127;  // introduces some imperfection
 const balls: Ball[] = [];
 const ballSink: Ball[] = [];  // Ball sink  (container for all pocketed balls)

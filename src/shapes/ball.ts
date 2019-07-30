@@ -220,62 +220,56 @@ export class Ball implements IShape {
         z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
       }));
 
-    // Scan-convert all visible (quadrilateral) faces for this ball
+    // Scan-convert all visible faces for this ball
     faceLoop: for (let i = 0; i < Primitives.Sphere.faces.length; i++) {
       const nz = Nscr[i].z;
       if (nz < 0) {
         continue faceLoop;
       }
-      // Get quadrilateral
+
       const face = Primitives.Sphere.faces[i];
       const p = face.v.map(v => Pscr[v]);
-      const sxmin = floor(min(...p.map(v => v.x)) + 0),
-            sxmax = floor(max(...p.map(v => v.x)) + 0),
-            symin = floor(min(...p.map(v => v.y)) + 0),
-            symax = floor(max(...p.map(v => v.y)) + 0);
+      const sxmin = floor(min(...p.map(v => v.x)) - 1),
+            sxmax = floor(max(...p.map(v => v.x)) + 1),
+            symin = floor(min(...p.map(v => v.y)) - 1),
+            symax = floor(max(...p.map(v => v.y)) + 1);
 
-      // Outside test
       if (sxmin > vp.screen.xmax || sxmax < vp.screen.xmin || symin > vp.screen.ymax || symax < vp.screen.ymin) {
         continue faceLoop;
       }
 
-      // New scan conversion method...
-      const n1 = face.v[0], n2 = face.v[1], n3 = face.v[2], n4 = face.v[3]; // Vertex indices
+      // New scan conversion algorithm!
 
-      const a: number[] = [
-        NaN,
-        Pscr[n2].x - Pscr[n1].x,
-        Pscr[n4].x - Pscr[n1].x,
-        Pscr[n1].x - Pscr[n2].x + Pscr[n3].x - Pscr[n4].x
-      ];
+      // Polygon vertices and texture coords.
+      const P = face.v.map(i => Pscr[i]);
+      const T = face.v.map(i => ({
+        u: Primitives.Sphere.data[i].u,
+        v: Primitives.Sphere.data[i].v
+      }));
 
-      const b: number[] = [
-        NaN,
-        Pscr[n2].y - Pscr[n1].y,
-        Pscr[n4].y - Pscr[n1].y,
-        Pscr[n1].y - Pscr[n2].y + Pscr[n3].y - Pscr[n4].y
-      ];
+      // Interpolation constants
+      let a: number[], b: number[], c: number[], d: number[];
+
+      switch (face.v.length) {
+        case 3:
+          a = [ NaN, P[1].x - P[0].x, P[2].x - P[0].x, P[0].x - P[2].x ];
+          b = [ NaN, P[1].y - P[0].y, P[2].y - P[0].y, P[0].y - P[2].y ];
+          c = [ T[0].u, T[1].u - T[0].u, T[2].u - T[0].u, T[0].u - T[2].u ];
+          d = [ T[0].v, T[1].v - T[0].v, T[2].v - T[0].v, T[0].v - T[2].v ];
+          break;
+        case 4:
+          a = [ NaN, P[1].x - P[0].x, P[3].x - P[0].x, P[0].x - P[1].x + P[2].x - P[3].x ];
+          b = [ NaN, P[1].y - P[0].y, P[3].y - P[0].y, P[0].y - P[1].y + P[2].y - P[3].y ];
+          c = [ T[0].u, T[1].u - T[0].u, T[3].u - T[0].u, T[0].u - T[1].u + T[2].u - T[3].u ];
+          d = [ T[0].v, T[1].v - T[0].v, T[3].v - T[0].v, T[0].v - T[1].v + T[2].v - T[3].v ];
+          break;
+        default:
+          console.log('Scan converter supports only triangular and quadrilateral faces');
+          return;
+      }
 
       let u: number, v: number;
-      let tu: number, tv: number;
-
-      const u1 = Primitives.Sphere.data[n1].u,
-            u2 = Primitives.Sphere.data[n2].u,
-            u3 = Primitives.Sphere.data[n3].u,
-            u4 = Primitives.Sphere.data[n4].u,
-            v1 = Primitives.Sphere.data[n1].v,
-            v2 = Primitives.Sphere.data[n2].v,
-            v3 = Primitives.Sphere.data[n3].v,
-            v4 = Primitives.Sphere.data[n4].v;
-      const f0 = u1,
-            f1 = u2 - u1,
-            f2 = u4 - u1,
-            f3 = u1 - u2 + u3 - u4,
-            g0 = v1,
-            g1 = v2 - v1,
-            g2 = v4 - v1,
-            g3 = v1 - v2 + v3 - v4;
-            
+      let tu: number, tv: number;                  
       let ix: number, iy: number;
       let srcIndex: number, destIndex: number;
 
@@ -283,48 +277,54 @@ export class Ball implements IShape {
         if (sy - vp.screen.ymin < 0 || sy - vp.screen.ymin > vp.pixelBuffer.height - 1) {
           continue yloop;
         }
-        b[0] = Pscr[n1].y - sy;
+        b[0] = P[0].y - sy;
 
         xloop: for (let sx = sxmin; sx <= sxmax; sx++) {
           if (sx - vp.screen.xmin < 0 || sx - vp.screen.xmin > vp.pixelBuffer.width - 1) {
             continue xloop;
           }
-          a[0] = Pscr[n1].x - sx;
-          const result = coonsSolver(a, b);
-          if (!result) {
+          a[0] = P[0].x - sx;
+
+          // Solve for parameters (u,v) on Coon's linear surface, 0 <= u,v <= 1
+          const params = coonsSolver(a, b);
+          if (!params) {
             continue xloop;
           }
-          u = result.u;
-          v = result.v;
+          u = params.u;
+          v = params.v;
 
-          // texture coords.
-          tu = f0 + f1 * u + f2 * v + f3 * u * v;
-          tv = g0 + g1 * u + g2 * v + g3 * u * v;
+          // Interpolate texture coords.
+          tu = c[0] + c[1] * u + c[2] * v + c[3] * u * v;
+          tv = d[0] + d[1] * u + d[2] * v + d[3] * u * v;
+
+          /*
           if (tu < 0) {
             tu = 0;
           } else if (tu > 1) {
             tu = 1;
           }
+          
           if (tv < 0) {
             tv = 0;
           } else if (tv > 1) {
             tv = 1;
           }
-          
-          ix = floor(tu * this.texture.width);
-          iy = floor(tv * this.texture.height);
+          */
+         
+          ix = floor(tu * (this.texture.width - 1) + .5);
+          iy = floor(tv * (this.texture.height - 1) + .5);
 
-          if (ix < 0) {
-            ix = 0;
-          } else if (ix > this.texture.width - 1) {
-            ix = this.texture.width - 1;
-          }
+          // if (ix < 0) {
+          //   ix = 0;
+          // } else if (ix > this.texture.width - 1) {
+          //   ix = this.texture.width - 1;
+          // }
           
-          if (iy < 0) {
-            iy = 0;
-          } else if (iy > this.texture.height - 1) {
-            iy = this.texture.height - 1;
-          }
+          // if (iy < 0) {
+          //   iy = 0;
+          // } else if (iy > this.texture.height - 1) {
+          //   iy = this.texture.height - 1;
+          // }
   
           srcIndex = (ix + iy * this.texture.width)<<2;
           destIndex = (sx - vp.screen.xmin + (sy - vp.screen.ymin) * vp.pixelBuffer.width)<<2;

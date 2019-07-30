@@ -9,8 +9,8 @@ interface Face {
 
 const { cos, sin, asin, atan2, PI, sqrt, floor, pow } = Math;
 
-const MSIZE = 16;
-const NSIZE = 32;
+const MSIZE = 12;
+const NSIZE = 24;
 
 const vertices: { x: number, y: number, z: number, u: number, v: number }[] = [];
 const faces: Face[] = [];
@@ -104,9 +104,11 @@ outerLoop: for (let i = 0; i < N - 1; i++) {
   k++;
 }
 
-// Update vertex indices for the faces
+// Update vertex indices for the faces and reduction to triangular face if needed
 faces.forEach(face => {
-  face.v = face.v.map(i => newIndex[i]);
+  face.v = face.v
+    .map(val => newIndex[val])
+    .filter((val, i, arr) => arr.indexOf(val) === i)
 });
 
 // const compressedVertices = vertices.map(v => ({
