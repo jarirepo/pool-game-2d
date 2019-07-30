@@ -3,4 +3,5 @@ node_modules
 dist
 assets/**/*.jpeg
 assets/**/*.jpg
+assets/**/*.png
 octave

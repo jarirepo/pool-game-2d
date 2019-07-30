@@ -1,3 +1,5 @@
+import { Vector3D, Matrix4 } from './vector3d';
+
 const { sqrt } = Math;
 
 /** Solves equation Ax=b with two unknowns */
@@ -46,4 +48,18 @@ export function coonsSolver(a: number[], b: number[]): { u: number, v: number } 
     return null;
   }
   return { u, v };
+}
+
+/**
+ * Returns the vector (u) as the vector (v) transformed to the coordinate system T by solving the equation: v = u * T
+ */
+export function transformVector(v: Vector3D, T: Matrix4): Vector3D | null {
+  const d = T.m00 * (T.m11 * T.m22 - T.m12 * T.m21) -
+            T.m01 * (T.m10 * T.m22 - T.m12 * T.m20) +
+            T.m02 * (T.m10 * T.m21 - T.m11 * T.m20);
+  return {
+    x: (v.x * (T.m11 * T.m22 - T.m21 * T.m12) + v.y * (T.m01 * T.m22 - T.m21 * T.m02) + v.z * (T.m01 * T.m12 - T.m11 * T.m02)) / d,
+    y: (v.x * (T.m10 * T.m22 - T.m20 * T.m12) + v.y * (T.m00 * T.m22 - T.m20 * T.m02) + v.z * (T.m00 * T.m12 - T.m10 * T.m02)) / d,
+    z: (v.x * (T.m10 * T.m21 - T.m20 * T.m11) + v.y * (T.m00 * T.m21 - T.m20 * T.m01) + v.z * (T.m00 * T.m11 - T.m10 * T.m01)) / d
+  };
 }

@@ -49,7 +49,7 @@ function createBallTexture(value: number, color: Color, ctx: CanvasRenderingCont
 }
 
 /*
-* Ball colors:
+* Ball colors for eight-ball game:
  * 0: white (cue-ball)
  * 1: yellow, 2: blue, 3: red, 4: purple, 5: orange, 6: green, 7: brown
  * 8: black
@@ -78,14 +78,10 @@ export class Ball implements IShape {
 
   public readonly isStatic = false;
 
-  /**
-   * Angular velocity for a rolling ball (in the direction of the velocity)
-   */
+  /** Angular velocity for a rolling ball (in the direction of the velocity) */
   omega = 0;
-  
-  /**
-   * Object Coordinate System (OCS), relative to the pool table, dynamic!
-   */
+
+  /** Object Coordinate System (OCS), relative to the pool table, dynamic! */
   ocs: Matrix4 = getRandomAxes();
 
   texture: ImageData;  
@@ -125,6 +121,8 @@ export class Ball implements IShape {
   }
 
   /**
+   * Updates the ball's coordinate system based on the velocity of its body as obtained from the physics engine.
+   * 
    * Angular velocity:
    *  ds = v * dt
    *  omega = ds / (2*pi*r) * 2*pi / dt = v / r
@@ -136,7 +134,8 @@ export class Ball implements IShape {
     this.ocs.m30 = this.body.position.x;
     this.ocs.m31 = this.body.position.y;
     
-    this.omega = 100 * this.body.speed / this.radius; // scaling by 100 produces a nuch better rolling effect!
+    // Angular velocity; scaling by 100 produces a nuch better rolling effect
+    this.omega = 100 * this.body.speed / this.radius;
 
     if (this.body.speed < .1) {
       return;
@@ -144,81 +143,59 @@ export class Ball implements IShape {
 
     // console.log(this.body.velocity);
 
-    /**
-     * Time step, assumimg 60 fps
-     */
+    // Time step, assumimg 60 fps
     const dt = 0.0166667;
 
-    /**
-     * Find the (ball roll axis) vector perpendicular to the linear motion direction
-     */
+    // Ball roll axis vector (perpendicular to the linear motion direction on the z-plane)
     const v: Vector3D = {
-      x: this.body.speed * this.body.velocity.y,
-      y: -this.body.speed * this.body.velocity.x,
+      x: -this.body.speed * this.body.velocity.y,
+      y: this.body.speed * this.body.velocity.x,
       z: 0
     };
-    // const v: Vector3D = {
-    //   x: -this.body.speed * this.body.velocity.y,
-    //   y: this.body.speed * this.body.velocity.x,
-    //   z: 0
-    // };
 
-    /**
-     * Rotate about the z-axis such that the vector v coinsides with the x-axis
-     */
-    const theta = atan2(v.y, v.x);
+    // Rotate about the z-axis such that the vector v coinsides with the x-axis
+    const theta = -atan2(v.y, v.x);
     const cosTheta = cos(theta);
     const sinTheta = sin(theta);
-
     const Rz: Matrix4 = {
       m00: cosTheta, m01: sinTheta, m02: 0, m03: 0,
       m10: -sinTheta, m11: cosTheta, m12: 0, m13: 0,
       m20: 0, m21: 0, m22: 1, m23: 0,
       m30: 0, m31: 0, m32: 0, m33: 1
     };
-
     const Rzinv: Matrix4 = {
       m00: cosTheta, m01: -sinTheta, m02: 0, m03: 0,
       m10: sinTheta, m11: cosTheta, m12: 0, m13: 0,
       m20: 0, m21: 0, m22: 1, m23: 0,
       m30: 0, m31: 0, m32: 0, m33: 1
     };
-
-    /**
-     * Rotation about the x-axis for the roll effect
-     */
+    
+    // Rotation about the x-axis for the ROLL effect
     const alpha = this.omega * dt;
     const cosAlpha = cos(alpha);
     const sinAlpha = sin(alpha);
-
     const Troll: Matrix4 = {
       m00: 1, m01: 0, m02: 0, m03: 0,
       m10: 0, m11: cosAlpha, m12: sinAlpha, m13: 0,
       m20: 0, m21: -sinAlpha, m22: cosAlpha, m23: 0,
       m30: 0, m31: 0, m32: 0, m33: 1
     };
-
-    /**
-     * Rotation about the z-axis for the spin effect
-     */
+    
+    // Rotation about the z-axis for the SPIN effect
     const phi = 100 * this.body.angularVelocity * dt;
-    // const phi = 1e3 * this.body.angularSpeed * dt;
     const cosPhi = cos(phi);
     const sinPhi = sin(phi);
-
     const Tspin: Matrix4 = {
       m00: cosPhi, m01: sinPhi, m02: 0, m03: 0,
       m10: -sinPhi, m11: cosPhi, m12: 0, m13: 0,
       m20: 0, m21: 0, m22: 1, m23: 0,
       m30: 0, m31: 0, m32: 0, m33: 1
     };
-
-    /**
-     * Compute the total transformation and apply it to the OCS
-     */
+    
+    // Compute the total transformation and apply it to the OCS
     const T = mmult4all([ Rz, Troll, Rzinv, Tspin ]);
     this.ocs = mmult4(this.ocs, T);
-    
+
     this.ocs.m30 = this.body.position.x;
     this.ocs.m31 = this.body.position.y;
     this.ocs.m32 = this.radius;
