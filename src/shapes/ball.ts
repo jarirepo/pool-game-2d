@@ -18,26 +18,33 @@ function createBallTexture(value: number, color: Color, ctx: CanvasRenderingCont
   const h = ballTextureHeight;
   // const r = h / 2 - 32;
   // const hy = (value < 9) ? 0 : 16;
-  const r = h / 5;
-  const hy = (value < 9) ? 0 : h / 5;
+  const r = h / 6;
+  const hy = (value < 9) ? 0 : h / 6;
   const drawText = (x: number) => {
     ctx.beginPath();
-    ctx.fillStyle = '#fff';
     ctx.arc(x, h / 2, r, 0, Constants.TWO_PI);
+    ctx.fillStyle = '#fff';
     ctx.fill();
+    ctx.font = '24pt Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = '#000';
-    ctx.fillText(value.toString(), x, h / 2 + 4);  
+    ctx.fillText(value.toString(), x, h / 2 + 4);    
   };
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = c;
   ctx.fillRect(0, hy, w, h - 2 * hy);
-  ctx.font = '24pt Trebuchet MS';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';  
-  drawText(0.76 * w);
-  drawText(0.25 * w);
+  if (value > 0) {
+    drawText(0.75 * w);
+    drawText(0.25 * w);
+  } else {
+    ctx.beginPath();
+    ctx.arc(0.25 * w, h / 2, r / 2, 0, Constants.TWO_PI);
+    ctx.fillStyle = '#ffc0cb';  // pink
+    ctx.fill();
+  }
   return ctx.getImageData(0, 0, w, h);
 }
 
