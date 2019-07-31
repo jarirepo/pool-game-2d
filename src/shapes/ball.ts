@@ -220,6 +220,18 @@ export class Ball implements IShape {
         z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
       }));
 
+    // Transform the average normal vectors of the vertices to the screen
+    // const vertexNormals = Primitives.Sphere.data
+    //   .map(v => v.n)
+    //   .map(v => ({
+    //     x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20,
+    //     y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21,
+    //     z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
+    //   }));
+    const vertexNormalsZ = Primitives.Sphere.data
+      .map(v => v.n)
+      .map(v => v.x * T.m02 + v.y * T.m12 + v.z * T.m22);
+
     // Scan-convert all visible faces for this ball
     faceLoop: for (let i = 0; i < Primitives.Sphere.faces.length; i++) {
       const nz = Nscr[i].z;
@@ -246,9 +258,11 @@ export class Ball implements IShape {
         u: Primitives.Sphere.data[i].u,
         v: Primitives.Sphere.data[i].v
       }));
-
+      // const Nz = face.v.map(i => vertexNormals[i].z);
+      const Nz = face.v.map(i => vertexNormalsZ[i]);
+      
       // Interpolation constants
-      let a: number[], b: number[], c: number[], d: number[];
+      let a: number[], b: number[], c: number[], d: number[], e: number[];
 
       switch (face.v.length) {
         case 3:
@@ -256,12 +270,14 @@ export class Ball implements IShape {
           b = [ NaN, P[1].y - P[0].y, P[2].y - P[0].y, P[0].y - P[2].y ];
           c = [ T[0].u, T[1].u - T[0].u, T[2].u - T[0].u, T[0].u - T[2].u ];
           d = [ T[0].v, T[1].v - T[0].v, T[2].v - T[0].v, T[0].v - T[2].v ];
+          e = [ Nz[0], Nz[1] - Nz[0], Nz[2] - Nz[0], Nz[0] - Nz[2] ];
           break;
         case 4:
           a = [ NaN, P[1].x - P[0].x, P[3].x - P[0].x, P[0].x - P[1].x + P[2].x - P[3].x ];
           b = [ NaN, P[1].y - P[0].y, P[3].y - P[0].y, P[0].y - P[1].y + P[2].y - P[3].y ];
           c = [ T[0].u, T[1].u - T[0].u, T[3].u - T[0].u, T[0].u - T[1].u + T[2].u - T[3].u ];
           d = [ T[0].v, T[1].v - T[0].v, T[3].v - T[0].v, T[0].v - T[1].v + T[2].v - T[3].v ];
+          e = [ Nz[0], Nz[1] - Nz[0], Nz[3] - Nz[0], Nz[0] - Nz[1] + Nz[2] - Nz[3] ];
           break;
         default:
           console.log('Scan converter supports only triangular and quadrilateral faces');
@@ -269,7 +285,8 @@ export class Ball implements IShape {
       }
 
       let u: number, v: number;
-      let tu: number, tv: number;                  
+      let tu: number, tv: number;       
+      let nzi: number;           
       let ix: number, iy: number;
       let srcIndex: number, destIndex: number;
 
@@ -297,20 +314,27 @@ export class Ball implements IShape {
           tu = c[0] + c[1] * u + c[2] * v + c[3] * u * v;
           tv = d[0] + d[1] * u + d[2] * v + d[3] * u * v;
 
-          /*
+          // Interpolate the z-component of the vertex normals
+          nzi = e[0] + e[1] * u + e[2] * v + e[3] * u * v;
+          
           if (tu < 0) {
             tu = 0;
           } else if (tu > 1) {
             tu = 1;
           }
-          
+
           if (tv < 0) {
             tv = 0;
           } else if (tv > 1) {
             tv = 1;
           }
-          */
-         
+
+          if (nzi < 0) {
+            nzi = 0;
+          } else if (nzi > 1) {
+            nzi = 1;
+          }
+
           ix = floor(tu * (this.texture.width - 1) + .5);
           iy = floor(tv * (this.texture.height - 1) + .5);
 
@@ -334,9 +358,17 @@ export class Ball implements IShape {
            * Uses the z-component (0<=nz<=1) of the face's normal vector (n) to adjust the shade of the texture color value at (ix,iy).
            * Assumes that there is a directional light above the pool table.
            */
-          pixels[destIndex] = nz * this.texture.data[srcIndex];
-          pixels[destIndex + 1] = nz * this.texture.data[srcIndex + 1];
-          pixels[destIndex + 2] = nz * this.texture.data[srcIndex + 2];
+          // pixels[destIndex] = nz * this.texture.data[srcIndex];
+          // pixels[destIndex + 1] = nz * this.texture.data[srcIndex + 1];
+          // pixels[destIndex + 2] = nz * this.texture.data[srcIndex + 2];
+          // pixels[destIndex + 3] = 255;
+
+          /**
+           * Gouraud shading, using the interpolated average vertext normal
+           */
+          pixels[destIndex] = nzi * this.texture.data[srcIndex];
+          pixels[destIndex + 1] = nzi * this.texture.data[srcIndex + 1];
+          pixels[destIndex + 2] = nzi * this.texture.data[srcIndex + 2];
           pixels[destIndex + 3] = 255;
         }
       }

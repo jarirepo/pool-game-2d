@@ -7,12 +7,21 @@ interface Face {
   e: Vector3D[];  // edge direction vectors
 }
 
+interface Vertex {
+  x: number;
+  y: number;
+  z: number;
+  u: number;
+  v: number;
+  n: Vector3D;
+}
+
 const { cos, sin, asin, atan2, PI, sqrt, floor, pow } = Math;
 
 const MSIZE = 12;
 const NSIZE = 24;
 
-const vertices: { x: number, y: number, z: number, u: number, v: number }[] = [];
+const vertices: Vertex[] = [];
 const faces: Face[] = [];
 
 // Compute a unit sphere sphere model used for the UV-mapping
@@ -27,7 +36,7 @@ for (let i = 0; i <= MSIZE; i++) {
     const z = cosTheta;
     const u = 0.5 + atan2(x, z) / Constants.TWO_PI;
     const v = 0.5 - asin(y) / PI;
-    vertices.push({ x, y, z, u, v });
+    vertices.push({ x, y, z, u, v, n: null });
   }
 }
 
@@ -108,8 +117,25 @@ outerLoop: for (let i = 0; i < N - 1; i++) {
 faces.forEach(face => {
   face.v = face.v
     .map(val => newIndex[val])
-    .filter((val, i, arr) => arr.indexOf(val) === i)
+    .filter((val, i, arr) => arr.indexOf(val) === i);
 });
+
+// Calculate the average normal vector for each (unique) vertex, used in Gouraud shading etc.
+const data = vertices
+  .filter((v, i) => indexList[i] === i) // removes all duplicates
+  .map((vertex, i) => {
+    const connectedFaces = faces.filter(face => face.v.indexOf(i) !== -1);
+    const nSum = connectedFaces
+      .map<Vector3D>(face => face.n)
+      .reduce<Vector3D>((result, n) => ({ x: result.x + n.x, y: result.y + n.y, z: result.z + n.z }), { x: 0, y: 0, z: 0});
+    const nAvg: Vector3D = {
+      x: nSum.x / connectedFaces.length,
+      y: nSum.y / connectedFaces.length,
+      z: nSum.z / connectedFaces.length
+    };
+    const nMag = sqrt(nAvg.x * nAvg.x + nAvg.y * nAvg.y + nAvg.z * nAvg.z);
+    return { ...vertex, n: { x: nAvg.x / nMag, y: nAvg.y / nMag, z: nAvg.z / nMag } };
+  });
 
 // const compressedVertices = vertices.map(v => ({
 //   x: floor(127.5 * (1 + v.x)),
@@ -127,7 +153,7 @@ faces.forEach(face => {
 
 export namespace Primitives {
   export const Sphere = {
-    data: vertices.filter((v, i) => indexList[i] === i),
+    data,
     faces
   };
 }

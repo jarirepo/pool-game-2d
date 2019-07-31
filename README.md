@@ -52,8 +52,13 @@ The balls are internally represented by spheres, each having their own object co
 
 ## Shading
 <figure class="image">
-  <img src="screenshots/poolgame-shaded-balls.png" alt="Shaded balls" />
-  <figcaption>Shaded balls</figcaption>
+  <img src="screenshots/poolgame-shaded-balls.png" alt="Flat shaded balls" />
+  <figcaption>Flat shaded balls</figcaption>
+</figure>
+
+<figure class="image">
+  <img src="screenshots/poolgame-gouraud-shading.png" alt="Gouraud shaded balls" />
+  <figcaption>Gouraud shaded balls</figcaption>
 </figure>
 
 ## Horizontal pool table alignment
