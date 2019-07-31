@@ -1,5 +1,5 @@
 import * as Matter from 'matter-js';
-import { Vector3D, Matrix4, mmult4, mmult4all, getRandomAxes, applyTransform } from '../vector3d';
+import { Vector3D, Matrix4, mmult4, mmult4all, getRandomAxes, applyTransform, normalizeVector, dot, vectorLen } from '../vector3d';
 import { Color, Colors } from '../colors';
 import { Constants } from '../constants';
 import { Primitives } from '../primitives';
@@ -46,6 +46,10 @@ function createBallTexture(value: number, color: Color, ctx: CanvasRenderingCont
     ctx.fill();
   }
   return ctx.getImageData(0, 0, w, h);
+}
+
+function constrain(val: number, minVal: number, maxVal: number): number {
+  return (val < minVal) ? minVal : (val > maxVal) ? maxVal : val;
 }
 
 /*
@@ -221,16 +225,22 @@ export class Ball implements IShape {
       }));
 
     // Transform the average normal vectors of the vertices to the screen
-    // const vertexNormals = Primitives.Sphere.data
-    //   .map(v => v.n)
-    //   .map(v => ({
-    //     x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20,
-    //     y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21,
-    //     z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
-    //   }));
-    const vertexNormalsZ = Primitives.Sphere.data
+    // (The x and y components are not needed for Gouraud shading)
+    const vertexNormals = Primitives.Sphere.data
       .map(v => v.n)
-      .map(v => v.x * T.m02 + v.y * T.m12 + v.z * T.m22);
+      .map(v => ({
+        x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20,
+        y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21,
+        z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
+      }))
+      .map(normalizeVector);
+
+    // const vertexNormalsZ = Primitives.Sphere.data
+    //   .map(v => v.n)
+    //   .map(v => v.x * T.m02 + v.y * T.m12 + v.z * T.m22);
+
+    // Directional light source (should not be declared here...)
+    const L: Vector3D = normalizeVector({ x: 2, y: -1, z: 2 });
 
     // Scan-convert all visible faces for this ball
     faceLoop: for (let i = 0; i < Primitives.Sphere.faces.length; i++) {
@@ -258,26 +268,34 @@ export class Ball implements IShape {
         u: Primitives.Sphere.data[i].u,
         v: Primitives.Sphere.data[i].v
       }));
-      // const Nz = face.v.map(i => vertexNormals[i].z);
-      const Nz = face.v.map(i => vertexNormalsZ[i]);
-      
+      const N = face.v.map(i => vertexNormals[i]);
+      // const Nz = face.v.map(i => vertexNormalsZ[i]);
+
       // Interpolation constants
-      let a: number[], b: number[], c: number[], d: number[], e: number[];
+      let A: number[][], F = [0, 0, 0, 0, 0];
 
       switch (face.v.length) {
-        case 3:
-          a = [ NaN, P[1].x - P[0].x, P[2].x - P[0].x, P[0].x - P[2].x ];
-          b = [ NaN, P[1].y - P[0].y, P[2].y - P[0].y, P[0].y - P[2].y ];
-          c = [ T[0].u, T[1].u - T[0].u, T[2].u - T[0].u, T[0].u - T[2].u ];
-          d = [ T[0].v, T[1].v - T[0].v, T[2].v - T[0].v, T[0].v - T[2].v ];
-          e = [ Nz[0], Nz[1] - Nz[0], Nz[2] - Nz[0], Nz[0] - Nz[2] ];
+        case 3:          
+          A = [
+            [ NaN, P[1].x - P[0].x, P[2].x - P[0].x, P[0].x - P[2].x ],
+            [ NaN, P[1].y - P[0].y, P[2].y - P[0].y, P[0].y - P[2].y ],                        
+            [ T[0].u, T[1].u - T[0].u, T[2].u - T[0].u, T[0].u - T[2].u ],
+            [ T[0].v, T[1].v - T[0].v, T[2].v - T[0].v, T[0].v - T[2].v ],
+            [ N[0].x, N[1].x - N[0].x, N[2].x - N[0].x, N[0].x - N[2].x ],
+            [ N[0].y, N[1].y - N[0].y, N[2].y - N[0].y, N[0].y - N[2].y ],
+            [ N[0].z, N[1].z - N[0].z, N[2].z - N[0].z, N[0].z - N[2].z ]
+          ];
           break;
         case 4:
-          a = [ NaN, P[1].x - P[0].x, P[3].x - P[0].x, P[0].x - P[1].x + P[2].x - P[3].x ];
-          b = [ NaN, P[1].y - P[0].y, P[3].y - P[0].y, P[0].y - P[1].y + P[2].y - P[3].y ];
-          c = [ T[0].u, T[1].u - T[0].u, T[3].u - T[0].u, T[0].u - T[1].u + T[2].u - T[3].u ];
-          d = [ T[0].v, T[1].v - T[0].v, T[3].v - T[0].v, T[0].v - T[1].v + T[2].v - T[3].v ];
-          e = [ Nz[0], Nz[1] - Nz[0], Nz[3] - Nz[0], Nz[0] - Nz[1] + Nz[2] - Nz[3] ];
+          A = [
+            [ NaN, P[1].x - P[0].x, P[3].x - P[0].x, P[0].x - P[1].x + P[2].x - P[3].x ],
+            [ NaN, P[1].y - P[0].y, P[3].y - P[0].y, P[0].y - P[1].y + P[2].y - P[3].y ],
+            [ T[0].u, T[1].u - T[0].u, T[3].u - T[0].u, T[0].u - T[1].u + T[2].u - T[3].u ],
+            [ T[0].v, T[1].v - T[0].v, T[3].v - T[0].v, T[0].v - T[1].v + T[2].v - T[3].v ],
+            [ N[0].x, N[1].x - N[0].x, N[3].x - N[0].x, N[0].x - N[1].x + N[2].x - N[3].x ],
+            [ N[0].y, N[1].y - N[0].y, N[3].y - N[0].y, N[0].y - N[1].y + N[2].y - N[3].y ],
+            [ N[0].z, N[1].z - N[0].z, N[3].z - N[0].z, N[0].z - N[1].z + N[2].z - N[3].z ]
+          ];
           break;
         default:
           console.log('Scan converter supports only triangular and quadrilateral faces');
@@ -285,7 +303,6 @@ export class Ball implements IShape {
       }
 
       let u: number, v: number;
-      let tu: number, tv: number;       
       let nzi: number;           
       let ix: number, iy: number;
       let srcIndex: number, destIndex: number;
@@ -294,62 +311,47 @@ export class Ball implements IShape {
         if (sy - vp.screen.ymin < 0 || sy - vp.screen.ymin > vp.pixelBuffer.height - 1) {
           continue yloop;
         }
-        b[0] = P[0].y - sy;
-
+        A[1][0] = P[0].y - sy;
         xloop: for (let sx = sxmin; sx <= sxmax; sx++) {
           if (sx - vp.screen.xmin < 0 || sx - vp.screen.xmin > vp.pixelBuffer.width - 1) {
             continue xloop;
           }
-          a[0] = P[0].x - sx;
-
+          A[0][0] = P[0].x - sx;
           // Solve for parameters (u,v) on Coon's linear surface, 0 <= u,v <= 1
-          const params = coonsSolver(a, b);
+          const params = coonsSolver(A[0], A[1]);
           if (!params) {
             continue xloop;
           }
           u = params.u;
           v = params.v;
 
-          // Interpolate texture coords.
-          tu = c[0] + c[1] * u + c[2] * v + c[3] * u * v;
-          tv = d[0] + d[1] * u + d[2] * v + d[3] * u * v;
+          /**
+           * Interpolation
+           * F(u,v) = A * [u, v, u * v]
+           */
 
-          // Interpolate the z-component of the vertex normals
-          nzi = e[0] + e[1] * u + e[2] * v + e[3] * u * v;
-          
-          if (tu < 0) {
-            tu = 0;
-          } else if (tu > 1) {
-            tu = 1;
-          }
-
-          if (tv < 0) {
-            tv = 0;
-          } else if (tv > 1) {
-            tv = 1;
-          }
-
-          if (nzi < 0) {
-            nzi = 0;
-          } else if (nzi > 1) {
-            nzi = 1;
-          }
-
-          ix = floor(tu * (this.texture.width - 1) + .5);
-          iy = floor(tv * (this.texture.height - 1) + .5);
-
-          // if (ix < 0) {
-          //   ix = 0;
-          // } else if (ix > this.texture.width - 1) {
-          //   ix = this.texture.width - 1;
+          // Interpolate texture coordinates and vertex normal
+          // for (let i = 2; i < A.length; i++) {
+          //   F[i - 2] = A[i][0] + A[i][1] * u + A[i][2] * v + A[i][3] * u * v;
           // }
+
+          F[0] = constrain(A[2][0] + A[2][1] * u + A[2][2] * v + A[2][3] * u * v, 0, 1);
+          F[1] = constrain(A[3][0] + A[3][1] * u + A[3][2] * v + A[3][3] * u * v, 0, 1);
+          F[2] = A[4][0] + A[4][1] * u + A[4][2] * v + A[4][3] * u * v;
+          F[3] = A[5][0] + A[5][1] * u + A[5][2] * v + A[5][3] * u * v;
+          F[4] = A[6][0] + A[6][1] * u + A[6][2] * v + A[6][3] * u * v;
+
+          ix = constrain(floor(F[0] * this.texture.width), 0, this.texture.width - 1);
+          iy = constrain(floor(F[1] * this.texture.height), 0, this.texture.height - 1);
+
+          const mag = sqrt(F[2] * F[2] + F[3] * F[3] + F[4] * F[4]);
+
+          F[2] /= mag;
+          F[3] /= mag;
+          F[4] /= mag;
           
-          // if (iy < 0) {
-          //   iy = 0;
-          // } else if (iy > this.texture.height - 1) {
-          //   iy = this.texture.height - 1;
-          // }
-  
+          nzi = F[4];
+
           srcIndex = (ix + iy * this.texture.width)<<2;
           destIndex = (sx - vp.screen.xmin + (sy - vp.screen.ymin) * vp.pixelBuffer.width)<<2;
 
@@ -364,11 +366,19 @@ export class Ball implements IShape {
           // pixels[destIndex + 3] = 255;
 
           /**
-           * Gouraud shading, using the interpolated average vertext normal
+           * Gouraud shading, using the interpolated average vertex normal
            */
-          pixels[destIndex] = nzi * this.texture.data[srcIndex];
-          pixels[destIndex + 1] = nzi * this.texture.data[srcIndex + 1];
-          pixels[destIndex + 2] = nzi * this.texture.data[srcIndex + 2];
+          // pixels[destIndex] = nzi * this.texture.data[srcIndex];
+          // pixels[destIndex + 1] = nzi * this.texture.data[srcIndex + 1];
+          // pixels[destIndex + 2] = nzi * this.texture.data[srcIndex + 2];
+          // pixels[destIndex + 3] = 255;
+
+          const cosa = dot(L, { x: F[2], y: F[3], z: F[4] });
+          const I = .2 + .8 * cosa;
+
+          pixels[destIndex] = I * this.texture.data[srcIndex];
+          pixels[destIndex + 1] = I * this.texture.data[srcIndex + 1];
+          pixels[destIndex + 2] = I * this.texture.data[srcIndex + 2];
           pixels[destIndex + 3] = 255;
         }
       }

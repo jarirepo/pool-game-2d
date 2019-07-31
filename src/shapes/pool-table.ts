@@ -363,7 +363,7 @@ export class PoolTable implements IShape {
   public render(vp: Viewport, T: Matrix4): void {
     // Pool table surface
     vp.context.beginPath();
-    vp.context.fillStyle = 'rgba(0,80,0,1)'; 
+    vp.context.fillStyle = 'rgba(0,80,0,1)';
     vp.context.fill(this.boundary);
     // Foot spot (rack position)
     vp.context.beginPath();

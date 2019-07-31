@@ -1,4 +1,4 @@
-const { PI, random, cos, sin, atan2, sign } = Math;
+const { PI, random, cos, sin, atan2, sign, sqrt } = Math;
 
 export interface Vector3D {
   x: number;
@@ -126,4 +126,17 @@ export function rotationDirectionXY(from: Vector3D, to: Vector3D): number {
 
 export function dot(a: Vector3D, b: Vector3D): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+export function normalizeVector(v: Vector3D): Vector3D {
+  const vmag = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  return {
+    x: v.x / vmag,
+    y: v.y / vmag,
+    z: v.z / vmag
+  };
+}
+
+export function vectorLen(v: Vector3D): number {
+  return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
