@@ -139,21 +139,28 @@ export class Viewport {
     this.world.xmax /= factor;
     this.world.ymin /= factor;
     this.world.ymax /= factor;
-    this.generateGridPoints();
-    this.redrawGrid = true;
+    if (this.opts.showGrid) {
+      this.generateGridPoints();
+      this.redrawGrid = true;
+    }
   }
 
   /** Zooms at the viewport center and regenerates the grid points */
   public zoomCenter(factor: number): void {
+    // Viewport center
+    const xc = (this.screen.xmin + this.screen.xmax) / 2;
+    const yc = (this.screen.ymin + this.screen.ymax) / 2;
+    this.zoomAt(xc,yc, factor);
+  }
+
+  /** Zooms at the specified position and regenerates the grid points */
+  public zoomAt(xc: number, yc: number, factor: number): void {
     if (factor <= 0) {
       return;
     }
     if (!this.canApplyScaleFactor(factor)) {
       return;
     }
-    // Viewport center
-    const xc = (this.screen.xmin + this.screen.xmax) / 2;
-    const yc = (this.screen.ymin + this.screen.ymax) / 2;
     const x = (xc - this.xOrg) / this.xScl;
     const y = (yc - this.yOrg) / this.yScl;
     // Apply zoom factor
@@ -167,13 +174,16 @@ export class Viewport {
     this.world.xmax = (this.screen.xmax - this.xOrg) / this.xScl;
     this.world.ymin = (this.screen.ymax - this.yOrg) / this.yScl;
     this.world.ymax = (this.screen.ymin - this.yOrg) / this.yScl;
-    this.generateGridPoints();
-    this.redrawGrid = true;
+    if (this.opts.showGrid) {
+      this.generateGridPoints();
+      this.redrawGrid = true;
+    }
   }
 
   /** Toggles grid on/off */
   public toggleGrid(): void {
     this.opts.showGrid = !this.opts.showGrid;
+    this.generateGridPoints();
     this.redrawGrid = true;
   }
 

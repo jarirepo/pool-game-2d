@@ -156,14 +156,17 @@ Matter.Events.on(engine, 'collisionActive', (event: Matter.IEventCollision<Matte
  *****************************************************************************/
 document.body.addEventListener('keypress', (e: KeyboardEvent) => {
   // console.log(e.key, e.keyCode);
+  const M = gameView.mouse.position;
   switch (e.keyCode) {
     case 43:  // '+'
       // gameView.zoomOrigin(1.1);
-      gameView.zoomCenter(1.05);
+      // gameView.zoomCenter(1.05);
+      gameView.zoomAt(M.x, M.y, 1.1);
       break;
     case 45:  // '-'
       // gameView.zoomOrigin(.9);
-      gameView.zoomCenter(.95);
+      // gameView.zoomCenter(.95);
+      gameView.zoomAt(M.x, M.y, 0.95);
       break;
     case 65:  // 'a'
     case 97:  // 'A'

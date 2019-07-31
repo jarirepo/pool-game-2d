@@ -67,6 +67,13 @@ The balls are internally represented by spheres, each having their own object co
   <figcaption>Horizontal pool table alignment</figcaption>
 </figure>
 
+## Zooming
+It is possible tool zoom in at a specific target location on the pool table.
+<figure class="image">
+  <img src="screenshots/poolgame-zoomed.png" alt="Zoomed in pool table" />
+  <figcaption>Zoomed in pool table</figcaption>
+</figure>
+
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
 [eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
 [bilinear-interp]: https://en.wikipedia.org/wiki/Bilinear_interpolation
