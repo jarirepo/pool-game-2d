@@ -302,7 +302,7 @@ export class Ball implements IShape {
           return;
       }
 
-      let u: number, v: number;
+      let u: number, v: number, uv: number;
       let nzi: number;           
       let ix: number, iy: number;
       let srcIndex: number, destIndex: number;
@@ -324,6 +324,7 @@ export class Ball implements IShape {
           }
           u = params.u;
           v = params.v;
+          uv = u * v;
 
           /**
            * Interpolation
@@ -335,11 +336,11 @@ export class Ball implements IShape {
           //   F[i - 2] = A[i][0] + A[i][1] * u + A[i][2] * v + A[i][3] * u * v;
           // }
 
-          F[0] = constrain(A[2][0] + A[2][1] * u + A[2][2] * v + A[2][3] * u * v, 0, 1);
-          F[1] = constrain(A[3][0] + A[3][1] * u + A[3][2] * v + A[3][3] * u * v, 0, 1);
-          F[2] = A[4][0] + A[4][1] * u + A[4][2] * v + A[4][3] * u * v;
-          F[3] = A[5][0] + A[5][1] * u + A[5][2] * v + A[5][3] * u * v;
-          F[4] = A[6][0] + A[6][1] * u + A[6][2] * v + A[6][3] * u * v;
+          F[0] = constrain(A[2][0] + A[2][1] * u + A[2][2] * v + A[2][3] * uv, 0, 1);
+          F[1] = constrain(A[3][0] + A[3][1] * u + A[3][2] * v + A[3][3] * uv, 0, 1);
+          F[2] = A[4][0] + A[4][1] * u + A[4][2] * v + A[4][3] * uv;
+          F[3] = A[5][0] + A[5][1] * u + A[5][2] * v + A[5][3] * uv;
+          F[4] = A[6][0] + A[6][1] * u + A[6][2] * v + A[6][3] * uv;
 
           ix = constrain(floor(F[0] * this.texture.width), 0, this.texture.width - 1);
           iy = constrain(floor(F[1] * this.texture.height), 0, this.texture.height - 1);

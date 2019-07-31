@@ -23,7 +23,7 @@ export function solve2(A: number[][], b: number[]): number[] | null {
  *  g(u,v) = b0 + b1 * u + b2 * v + b3 * u * v = 0
  *  0 <= u,v <= 1
  */
-export function coonsSolver(a: number[], b: number[]): { u: number, v: number } | null {
+export function coonsSolver(a: number[], b: number[], tol = 1e-9): { u: number, v: number } | null {
   const c = [
     a[0] * b[2] - a[2] * b[0],
     a[0] * b[3] - a[3] * b[0] + a[1] * b[2] - a[2] * b[1],
@@ -31,22 +31,61 @@ export function coonsSolver(a: number[], b: number[]): { u: number, v: number } 
   ];
 
   const d0 = c[1] / (2 * c[2]);
-  const d1 = d0 * d0 - c[0] / c[2];
+
+  // const d1 = d0 * d0 - c[0] / c[2];
+  // if (d1 < 0) {
+  //   return null;
+  // }
+  // const d2 = sqrt(d1);
+  // let u = -d0 - d2;
+  // if (u < 0 || u > 1) {
+  // u = -d0 + d2;
+  //   if (u < 0 || u > 1) {
+  //     return null;
+  //   }
+  // }
+  // const v = -(a[0] + a[1] * u) / (a[2] + a[3] * u);
+  // if (v < 0 || v > 1) {
+  //   return null;
+  // }
+
+  let d1 = d0 * d0 - c[0] / c[2];
+  
   if (d1 < 0) {
-    return null;
+    if (d1 < -tol) {
+      return null;
+    }
+    d1 = 0;
   }
+  
   const d2 = sqrt(d1);
   let u = -d0 - d2;
-  if (u < 0 || u > 1) {
-  u = -d0 + d2;
-    if (u < 0 || u > 1) {
+  
+  if (u < -tol || u > (1 + tol)) {
+    u = -d0 + d2;
+    if (u < -tol || u > (1 + tol)) {
       return null;
     }
   }
-  const v = -(a[0] + a[1] * u) / (a[2] + a[3] * u);
-  if (v < 0 || v > 1) {
+  
+  if (u < 0) {
+    u = 0;
+  } else if (u > 1) {
+    u = 1;
+  }
+
+  let v = -(a[0] + a[1] * u) / (a[2] + a[3] * u);
+  
+  if (v < -tol || v > (1 + tol)) {
     return null;
   }
+
+  if (v < 0) {
+    v = 0;
+  } else if (v > 1) {
+    v = 1;
+  }
+  
   return { u, v };
 }
 
