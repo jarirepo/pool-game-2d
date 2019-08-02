@@ -5,7 +5,8 @@ import { Rack } from './rack';
 import { PoolTable } from './shapes/pool-table';
 import { Viewport } from './viewport';
 import { Scene } from './scene';
-import { Vector3D, mmult4 } from './vector3d';
+import { Vector3D, mmult4 } from './geometry/vector3d';
+import { Cue } from './shapes/cue';
 
 const { PI, random, floor, min, sin } = Math;
 
@@ -70,6 +71,12 @@ const poolTableOptions: Matter.IBodyDefinition = { isStatic: true, friction: .1,
 const poolTable = new PoolTable(rack, balls, 7 * 0.3048e3, 1.5 * ballRadius, poolTableOptions);  // length (ft -> mm), hole radius (mm)
 
 /*****************************************************************************
+ * Create the cue
+ *****************************************************************************/
+const cue = new Cue({ length: 1500, tipRadius: 13/2, buttRadius: 30/2, mass: 0.54 });
+cue.init(ctx);
+
+/*****************************************************************************
  * Add the bodies for the rail cushions, pockets and balls to the physics world
  *****************************************************************************/
 World.add(world, poolTable.cushionBodies);
@@ -77,14 +84,16 @@ World.add(world, poolTable.pockets.map(pocket => pocket.body));
 World.add(world, balls.map(b => b.body));
 
 /*****************************************************************************
- * Add pool table surface, pockets, rail cushions and balls to the game scene
+ * Add pool table, pockets, rail cushions, cue and balls to the game scene
  *****************************************************************************/
-gameScene.add(poolTable);
-gameScene.setTransform(poolTable.ocs);
-gameScene.add(poolTable.pockets);
-gameScene.add(poolTable.railCushions);
-gameScene.add(balls);
-
+gameScene
+  .add(poolTable)
+  .setTransform(poolTable.ocs)
+  .add(poolTable.pockets)
+  .add(poolTable.railCushions)
+  .add(cue)
+  .add(balls);
+  
 /*****************************************************************************
  * Pool table init
  * - Stacks balls 1-15 in the triangular rack (with the rack's apex at the foot spot)
@@ -108,12 +117,11 @@ let shootForce: number;
 let dragStartPos: Vector3D;
 let dragEndPos: Vector3D;
 
-console.log('Balls:', balls);
 console.log('Rack:', rack);
-console.log('World bodies:', world);
-console.log('Scene shapes:', gameScene.shapes);
 console.log('Force impulse:', forceImpulse);
 console.log('Viewport transformation:', gameView.getTransform());
+console.log('World bodies:', world);
+console.log('Scene shapes:', gameScene.shapes);
 
 /*****************************************************************************
  * Handle collision events
@@ -155,7 +163,7 @@ Matter.Events.on(engine, 'collisionActive', (event: Matter.IEventCollision<Matte
  * Handle keyboard events
  *****************************************************************************/
 document.body.addEventListener('keypress', (e: KeyboardEvent) => {
-  // console.log(e.key, e.keyCode);
+  console.log(e.key, e.keyCode);
   const M = gameView.mouse.position;
   switch (e.keyCode) {
     case 43:  // '+'
@@ -176,6 +184,13 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
     case 103: // 'g'
       gameView.toggleGrid();
       break;
+    case 87:  // 'W'
+    case 119: // 'w'
+      // Move cue forward
+      break;
+    case 83:  // 'S'
+    case 115: // 's'
+      // Move cue backward (retraction)
   }
 });
 

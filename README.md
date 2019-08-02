@@ -74,6 +74,12 @@ It is possible tool zoom in at a specific target location on the pool table.
   <figcaption>Zoomed in pool table</figcaption>
 </figure>
 
+## Cue
+<figure class="image">
+  <img src="screenshots/poolgame-cue.png" alt="Cue" />
+  <figcaption>Cue</figcaption>
+</figure>
+
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
 [eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
 [bilinear-interp]: https://en.wikipedia.org/wiki/Bilinear_interpolation

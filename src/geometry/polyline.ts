@@ -1,5 +1,5 @@
 import { Vector3D, Matrix4, rotateZ, createRotationMatrixZ, applyTransform, angleXY, rotationDirectionXY } from './vector3d';
-import { Constants } from './constants';
+import { Constants } from '../constants';
 
 const { abs, sqrt, acos, asin, sign, cos, sin, atan, atan2, PI } = Math;
 
@@ -13,22 +13,22 @@ export class Polyline {
   /** Last defined direction */
   public readonly v: Vector3D = { x: 0, y: 0, z: 0 };
 
-  constructor(x = 0, y = 0) {
-    this.p.push({ x, y, z: 0});
+  constructor(x = 0, y = 0, z = 0) {
+    this.p.push({ x, y, z});
   }
 
-  public lineTo(x: number, y: number): Polyline {
+  public lineTo(x: number, y: number, z = 0): Polyline {
     // console.log('lineTo');
     const d: Vector3D = {
       x: x - this.p[this.p.length - 1].x,
       y: y - this.p[this.p.length - 1].y,
-      z: 0
+      z: z - this.p[this.p.length - 1].z
     };
+    this.p.push({ x, y, z });
     const m = sqrt(d.x * d.x + d.y * d.y + d.z * d.z);
     this.v.x = d.x / m;
     this.v.y = d.y / m;
     this.v.z = d.z / m;
-    this.p.push({ x, y, z: 0 });
     return this;
   }
 
@@ -51,6 +51,7 @@ export class Polyline {
      * Rotate point p1 and vector v about the z-axis to let p1=(x1,y1) coinside with the x-axis
      */
     const numseg = 3;
+    
     const p0 = this.p[ this.p.length-1 ];
     const p1: Vector3D = { x: x - p0.x, y: y - p0.y, z: 0 };
     const rz = angleXY(p1);
@@ -59,7 +60,6 @@ export class Polyline {
     const t0 = applyTransform(this.v, T);
     const b = a.x;
     const tau = angleXY(t0);
-    // const tau = atan(t0.y / t0.x);
     const sgn = rotationDirectionXY(t0, a);
     const dtau = sgn * tau / numseg;
     const T2 = createRotationMatrixZ(dtau);

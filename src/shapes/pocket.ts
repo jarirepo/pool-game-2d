@@ -1,6 +1,6 @@
 import * as Matter from 'matter-js';
 import { Constants } from '../constants';
-import { Matrix4 } from '../vector3d';
+import { Matrix4 } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
 import { IShape } from './shape';
 import { Ball } from './ball';

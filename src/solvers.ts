@@ -1,4 +1,4 @@
-import { Vector3D, Matrix4 } from './vector3d';
+import { Vector3D, Matrix4 } from './geometry/vector3d';
 
 const { sqrt } = Math;
 

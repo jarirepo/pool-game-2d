@@ -1,6 +1,6 @@
 import { isUndefined } from 'util';
 import * as Matter from 'matter-js';
-import { Matrix4, mmult4, Vector3D, WCS } from './vector3d';
+import { Matrix4, mmult4, Vector3D, WCS } from './geometry/vector3d';
 import { Scene } from './scene';
 import { solve2 } from './solvers';
 
@@ -54,6 +54,9 @@ export class Viewport {
   public pixelBuffer: ImageData;
   // public readonly pixelBuffer: ImageData;
 
+  /** Depth buffer */
+  public readonly zBuffer: number[];
+
   /** Current coordinate system */
   public currentAxes: Matrix4 = WCS;
 
@@ -84,6 +87,7 @@ export class Viewport {
     this.generateGridPoints();
 
     // this.pixelBuffer = this.context.createImageData(this.screen.xmax - this.screen.xmin, this.screen.ymax - this.screen.ymin);
+    this.zBuffer = new Array<number>((this.screen.xmax - this.screen.xmin) * (this.screen.ymax - this.screen.ymin));
 
     this.scene.on('modified', args => {
       console.log('Scene modified', args);
@@ -209,6 +213,10 @@ export class Viewport {
     if (this.pixelBuffer) {
       this.context.putImageData(this.pixelBuffer, this.screen.xmin, this.screen.ymin);
     }
+  }
+
+  public initZBuffer(): void {
+    this.zBuffer.fill(-1e9);
   }
 
   public render(): void {

@@ -3,7 +3,7 @@ import { isArray } from 'util';
 
 import { IShape } from './shapes/shape';
 import { Viewport } from './viewport';
-import { Matrix4, WCS, mmult4 } from './vector3d';
+import { Matrix4, WCS, mmult4 } from './geometry/vector3d';
 import { Constants } from './constants';
 
 /**
@@ -49,19 +49,19 @@ export class Scene extends EventEmitter {
   }
 
   /** Sets the current transformation, always relative to the current coordinate system */
-  public setTransform(matrix: Matrix4): void {
-    console.log('setTransform', matrix);
+  public setTransform(matrix: Matrix4): Scene {
     const transform: Transform = { matrix, parent: this.Tcurrent }
     this.transforms.push(transform);
     this.Tcurrent = this.transforms[this.transforms.length - 1];
     console.log('Transforms:', this.transforms);
+    return this;
   }
 
   /** Adds a shape to the scene, relative to the current coordinate system, 
    * and computes its transformation to world coordinates.
    * This also notifies any listeners that the scene has been modified.
    */
-  public add(shape: IShape | IShape[]): void {
+  public add(shape: IShape | IShape[]): Scene {
     if (isArray(shape)) {
       shape.forEach(s => {
         // Calculate the transformation from OCS to world coordinates
@@ -75,6 +75,7 @@ export class Scene extends EventEmitter {
       this.shapes.push({ shape, transform: { matrix: T, parent: this.Tcurrent } });
     }
     this.emit('modified');
+    return this;
   }
 
   /** Renders all shapes in the scene */
@@ -83,6 +84,8 @@ export class Scene extends EventEmitter {
     vp.context.beginPath();
     vp.context.rect(vp.screen.xmin, vp.screen.ymin, vp.screen.xmax - vp.screen.xmin, vp.screen.ymax - vp.screen.ymin);
     vp.context.clip();
+    
+    vp.initZBuffer();
     
     const Tscr = vp.getTransform();
 

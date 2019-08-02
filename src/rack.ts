@@ -35,7 +35,7 @@ export class Rack  {
 
   setup() {
     // Shuffle ball values 1-15
-    const ids = new Array(15).fill(0).map((v, i) => 1 + i);
+    const ids = new Array(15).fill(0).map((v, i) => 1 + i); // ball values!
     for (let i = ids.length - 1; i > 0; i--) {
       const j = floor(random() * (i + 1));
       [ids[i], ids[j]] = [ids[j], ids[i]];

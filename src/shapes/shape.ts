@@ -1,4 +1,4 @@
-import { Matrix4 } from '../vector3d';
+import { Matrix4 } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
 
 export interface IShape {

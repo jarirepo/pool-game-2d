@@ -1,3 +1,5 @@
+import { Vertex } from './geometry';
+
 const { PI, random, cos, sin, atan2, sign, sqrt } = Math;
 
 export interface Vector3D {
@@ -92,13 +94,33 @@ export function mmult(P: number[][], T: number[][]): number[][] {
   return Q;
 }
 
-export function createRotationMatrixZ(angle: number): Matrix4 {
-  const cosa = cos(angle);
-  const sina = sin(angle);
+export function createRotationMatrixX(angle: number): Matrix4 {
+  const c = cos(angle);
+  const s = sin(angle);
   return {
-    m00: cosa, m01: sina, m02: 0, m03: 0,
-    m10: -sina, m11: cosa, m12: 0, m13: 0,
+    m00: 1, m01: 0, m02: 0, m03: 0,
+    m10: 0, m11: c, m12: s, m13: 0,
+    m20: 0, m21: -s, m22: c, m23: 0,
+    m30: 0, m31: 0, m32: 0, m33: 1
+  };
+}
+
+export function createRotationMatrixZ(angle: number): Matrix4 {
+  const c = cos(angle);
+  const s = sin(angle);
+  return {
+    m00: c, m01: s, m02: 0, m03: 0,
+    m10: -s, m11: c, m12: 0, m13: 0,
     m20: 0, m21: 0, m22: 1, m23: 0,
+    m30: 0, m31: 0, m32: 0, m33: 1
+  };
+}
+
+export function createScalingMatrix(sx: number, sy?: number, sz?: number): Matrix4 {
+  return {
+    m00: sx, m01: 0, m02: 0, m03: 0,
+    m10: 0, m11: sy || sx, m12: 0, m13: 0,
+    m20: 0, m21: 0, m22: sz || sx, m23: 0,
     m30: 0, m31: 0, m32: 0, m33: 1
   };
 }
@@ -108,6 +130,14 @@ export function applyTransform(v: Vector3D, T: Matrix4): Vector3D {
     x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20 + T.m30,
     y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21 + T.m31,
     z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22 + T.m32
+  };
+}
+
+export function applyTransformToVector(v: Vector3D, T: Matrix4): Vector3D {
+  return {
+    x: v.x * T.m00 + v.y * T.m10 + v.z * T.m20,
+    y: v.x * T.m01 + v.y * T.m11 + v.z * T.m21,
+    z: v.x * T.m02 + v.y * T.m12 + v.z * T.m22
   };
 }
 
@@ -139,4 +169,16 @@ export function normalizeVector(v: Vector3D): Vector3D {
 
 export function vectorLen(v: Vector3D): number {
   return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+export function crossProduct(u: Vector3D, v: Vector3D): Vector3D {
+  return { x: u.y * v.z - u.z * v.y, y: u.z * v.x - u.x * v.z, z: u.x * v.y - u.y * v.x };
+}
+
+/** Returns the normal vector to a plane defined by the points p0, p1 and p2 */
+export function normalVector(p0: Vector3D | Vertex, p1: Vector3D | Vertex, p2: Vector3D | Vertex): Vector3D {
+  const u: Vector3D = { x: p1.x - p0.x, y: p1.y - p0.y, z: p1.z - p0.z };
+  const v: Vector3D = { x: p2.x - p0.x, y: p2.y - p0.y, z: p2.z - p0.z };
+  const w = crossProduct(u, v);
+  return normalizeVector(w);
 }

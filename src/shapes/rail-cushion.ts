@@ -1,7 +1,7 @@
 import { Constants } from '../constants';
-import { Matrix4, mmult4, createRotationMatrixZ } from '../vector3d';
+import { Matrix4, mmult4, createRotationMatrixZ } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
-import { Polyline } from '../polyline';
+import { Polyline } from '../geometry/polyline';
 import { IShape } from './shape';
 
 const { tan } = Math;

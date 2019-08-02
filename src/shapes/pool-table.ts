@@ -1,7 +1,7 @@
 import * as Matter from 'matter-js';
 import { Constants } from '../constants';
-import { Vector3D, Matrix4, applyTransform } from '../vector3d';
-import { Polyline } from '../polyline';
+import { Vector3D, Matrix4, applyTransform } from '../geometry/vector3d';
+import { Polyline } from '../geometry/polyline';
 import { Pocket } from './pocket';
 import { RailCushion } from './rail-cushion';
 import { Rack } from '../rack';

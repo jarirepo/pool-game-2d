@@ -5,4 +5,5 @@ export namespace Constants {
   export const SQRT_2 = Math.sqrt(2);
   export const SQRT_3 = Math.sqrt(3);
   export const R2D = 180 / PI;
+  export const D2R = PI / 180;
 }
