@@ -5,10 +5,9 @@ import { Rack } from './rack';
 import { PoolTable } from './shapes/pool-table';
 import { Viewport } from './viewport';
 import { Scene } from './scene';
-import { Vector3D, mmult4 } from './geometry/vector3d';
-import { Cue } from './shapes/cue';
+import { Cue, CueState } from './shapes/cue';
 
-const { PI, random, floor, min, sin } = Math;
+const { random } = Math;
 
 const stats = new Stats();
 stats.showPanel( 0 ); // fps
@@ -28,6 +27,15 @@ document.body.focus({ preventScroll: true });
 ctx.fillStyle = 'rgb(51, 51, 51)';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.globalAlpha = 1;
+
+/*****************************************************************************
+ * Game state
+ *****************************************************************************/
+enum GameState {
+  AIMING,
+  STROKING
+};
+let state = GameState.AIMING;
 
 /*****************************************************************************
  * Create Scene and Viewport
@@ -62,6 +70,7 @@ for (let i = 0; i < 16; i++) {
   balls.push(new Ball(i, r, b));
 }
 balls.forEach(ball => ball.init(ctx));
+const cueBall = balls[0];
 
 /*****************************************************************************
  * Create the pool table
@@ -73,7 +82,7 @@ const poolTable = new PoolTable(rack, balls, 7 * 0.3048e3, 1.5 * ballRadius, poo
 /*****************************************************************************
  * Create the cue
  *****************************************************************************/
-const cue = new Cue({ length: 1500, tipRadius: 13/2, buttRadius: 30/2, mass: 0.54 });
+const cue = new Cue(poolTable, cueBall, { length: 1500, tipRadius: 13/2, buttRadius: 30/2, mass: 0.54 });
 cue.init(ctx);
 
 /*****************************************************************************
@@ -104,21 +113,11 @@ poolTable.init();
 
 gameView.currentAxes = poolTable.ocs;
 
-const cueBall = balls[0];
-const forceImpulse = new Array(5).fill(0).map((v, i) => floor(255 * sin(PI * ((i - 2) / 2 + 1) / 2)));
 const Wmax = new Array(200).fill(0);
-const maxForceMag = 200;
 
 let dragging = false;
-let shooting = false;
-let shootStep = 0;
-let shootDir: Matter.Vector;
-let shootForce: number;
-let dragStartPos: Vector3D;
-let dragEndPos: Vector3D;
 
 console.log('Rack:', rack);
-console.log('Force impulse:', forceImpulse);
 console.log('Viewport transformation:', gameView.getTransform());
 console.log('World bodies:', world);
 console.log('Scene shapes:', gameScene.shapes);
@@ -188,9 +187,6 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
     case 119: // 'w'
       // Move cue forward
       break;
-    case 83:  // 'S'
-    case 115: // 's'
-      // Move cue backward (retraction)
   }
 });
 
@@ -199,44 +195,34 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
  *****************************************************************************/
 Engine.run(engine);
 
-// const timer = setTimeout(() => {
-//   Matter.Body.applyForce(cueBall.body, cueBall.body.position, { x: 1, y: -10 });
-// }, 1000);
-
-function animate(time = 0) {  
+function gameLoop(time = 0) {  
   stats.begin();
 
-  if (shooting) {    
-    const force = Matter.Vector.mult(shootDir, (shootForce * forceImpulse[shootStep]) >> 8);
-    Matter.Body.applyForce(cueBall.body, cueBall.body.position, force);
-    // console.log('Applied force:', force);
-    shootStep++;
-    if (shootStep === forceImpulse.length) {
-      shooting = false;
-    }
-  }
+  // const hasSettled = poolTable.hasSettled();
 
-  const hasSettled = poolTable.hasSettled();
+  cue.update(time);
 
-  if (!dragging && !cueBall.isPocketed) {
-    if (gameView.mouse.button === 0 && hasSettled) { // left mouse button pressed
-      dragStartPos = gameView.getMousePos();
-      dragging = true;
-    }
-  } else {
-    if (gameView.mouse.button === -1) {  // mouse button released      
-      dragEndPos = gameView.getMousePos();
-      // const v = Matter.Vector.create(dragStartPos.x - dragEndPos.x, dragStartPos.y - dragEndPos.y);
-      const v = Matter.Vector.create(cueBall.body.position.x - dragEndPos.x, cueBall.body.position.y - dragEndPos.y);
-      shootForce = min(floor(0.5 * Matter.Vector.magnitude(v)), maxForceMag);
-      shootDir = Matter.Vector.normalise(v);
-      shootStep = 0;
-      shooting = true;
-      dragging = false;
-      console.log(dragEndPos);
-      console.log('Shooting direction:', shootDir);
-      console.log('Shooting force:', shootForce);
-    }
+  switch (cue.state) {
+    case CueState.AIMING:
+      const mousePos = gameView.getMousePos();
+      cue.aimAt(mousePos);
+      // cue.update(time);
+
+      if (!dragging && !cueBall.isPocketed) {
+        if (gameView.mouse.button === 0) {  // left mouse button pressed
+          dragging = true;
+          console.log('Dragging');
+        }
+      } else {
+        if (gameView.mouse.button === -1) { // mouse button released
+          dragging = false;
+          cue.stroke();
+        }
+      }
+      break;
+
+    case CueState.STROKING:
+      break;
   }
 
   ctx.fillStyle = '#111';
@@ -249,15 +235,7 @@ function animate(time = 0) {
   gameView.render();
   // gameScene.render(gameView);
   
-  // Get image data where to render the balls
-  // tableImageData = ctx.getImageData(0, 0, scale * poolTable.width, scale * poolTable.length);
-  // Render the object balls 1-15
-  // balls.filter(ball => !ball.isPocketed).forEach(ball => {
-  //   ball.update();
-  //   drawBall(ball, tableImageData);
-  // });
-  // ctx.putImageData(tableImageData, 0, 0);
-
+  /*
   // Render ball activity (during dragging)
   //if (dragging) {
     Wmax.fill(0);
@@ -302,8 +280,10 @@ function animate(time = 0) {
     ctx.restore();
 
   //}
+*/
 
   // Render the ball sink containing all pocketed balls
+  /*
   ctx.beginPath();
   ctx.fillRect(100, canvas.height - 50, canvas.width - 100, 50);
   ctx.fillStyle = '#ccc';
@@ -311,7 +291,8 @@ function animate(time = 0) {
   const sinkImageData = ctx.getImageData(100, canvas.height - 50, canvas.width - 100, 50);  
   // ballSink.forEach(ball => drawBall(ball, sinkImageData));
   ctx.putImageData(sinkImageData, 100, canvas.height - 50);
-  
+  */
+
   /*
   // Output textures for balls 1-15
   let index = 1;
@@ -327,51 +308,9 @@ function animate(time = 0) {
   }
   */
 
-  // Player input
-  if (dragging) {
-    // Cue-ball position relative to the pool table
-    const B: Vector3D = {
-      x: cueBall.ocs.m30,
-      y: cueBall.ocs.m31,
-      z: cueBall.ocs.m32
-    };
-
-    // Rubberband between the cue-ball and the mouse pointer
-    const M = gameView.getMousePos();
-    const Tscr = gameView.getTransform();
-    const Tocs = gameView.currentAxes;
-    const T = mmult4(Tocs, Tscr);
-    ctx.save();
-    ctx.setTransform({
-      m11: T.m00, m12: T.m01,
-      m21: T.m10, m22: T.m11,
-      m41: T.m30, m42: T.m31
-    });
-    ctx.beginPath();
-    ctx.moveTo(B.x, B.y);
-    ctx.lineTo(M.x, M.y);
-    ctx.strokeStyle = 'rgba(255,255,255,.5)';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    ctx.restore();
-
-    // // Cue-ball's position in world coordinates
-    // const Bwcs = applyTransform(B, poolTable.ocs);
-    // // Cue-ball's position in screen coordinates
-    // const Tscr = gameView.getTransform();
-    // const Bscr = applyTransform(Bwcs, Tscr);
-
-    // Rubberband between the cue-ball and the mouse pointer
-    // ctx.beginPath();
-    // ctx.moveTo(Bscr.x, Bscr.y);
-    // ctx.lineTo(mouse.position.x, mouse.position.y);
-    // ctx.strokeStyle = 'rgba(255,255,255,.5)';
-    // ctx.lineWidth = 4;
-    // ctx.stroke();
-  }
 
   stats.end();
-  requestAnimationFrame(animate);
+  requestAnimationFrame(gameLoop);
 }
 
-animate();
+gameLoop();
