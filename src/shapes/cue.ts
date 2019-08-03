@@ -107,9 +107,17 @@ export class Cue implements IShape {
     const h = 256;
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = 'rgb(64,224,208)';    
+
+    // Handle
+    ctx.fillStyle = 'rgb(0,0,0)'; // black
+    ctx.fillRect(0, 0, w, 30);
+    ctx.fillStyle = 'rgb(128,0,0)'; // maroon
+    ctx.fillRect(0, 30, w, h / 2 - 30);
+    // Shaft
+    ctx.fillStyle = 'rgb(245,245,220)'; // beige
+    ctx.fillRect(0, h / 2, w, h / 2);
+    // Tip
+    ctx.fillStyle = 'rgb(0,206,209)'; // dark turquoise
     ctx.fillRect(0, h-10, w, 10);
     
     this.texture = ctx.getImageData(0, 0, w, h);
