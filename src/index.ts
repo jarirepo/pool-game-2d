@@ -82,7 +82,7 @@ const poolTable = new PoolTable(rack, balls, 7 * 0.3048e3, 1.5 * ballRadius, poo
 /*****************************************************************************
  * Create the cue
  *****************************************************************************/
-const cue = new Cue(poolTable, cueBall, { length: 1500, tipRadius: 13/2, buttRadius: 30/2, mass: 0.54 });
+const cue = new Cue(poolTable, cueBall, { length: 1500, tipRadius: 6.5, buttRadius: 15 });
 cue.init(ctx);
 
 /*****************************************************************************
@@ -162,7 +162,7 @@ Matter.Events.on(engine, 'collisionActive', (event: Matter.IEventCollision<Matte
  * Handle keyboard events
  *****************************************************************************/
 document.body.addEventListener('keypress', (e: KeyboardEvent) => {
-  console.log(e.key, e.keyCode);
+  // console.log(e.key, e.keyCode);
   const M = gameView.mouse.position;
   switch (e.keyCode) {
     case 43:  // '+'
@@ -211,7 +211,6 @@ function gameLoop(time = 0) {
       if (!dragging && !cueBall.isPocketed) {
         if (gameView.mouse.button === 0) {  // left mouse button pressed
           dragging = true;
-          console.log('Dragging');
         }
       } else {
         if (gameView.mouse.button === -1) { // mouse button released

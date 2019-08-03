@@ -1,5 +1,5 @@
 import * as Matter from 'matter-js';
-import { Vector3D, Matrix4, mmult4, mmult4all, getRandomAxes, applyTransform, createScalingMatrix } from '../geometry/vector3d';
+import { Vector3D, Matrix4, mmult4, mmult4all, getRandomAxes, applyTransform, createScalingMatrix, createRotationMatrixX, createRotationMatrixZ } from '../geometry/vector3d';
 import { Color, Colors } from '../colors';
 import { Constants } from '../constants';
 import { Primitives } from '../geometry/primitives';
@@ -132,7 +132,7 @@ export class Ball implements IShape {
     // Update the ball's position from the physics engine    
     this.ocs.m30 = this.body.position.x;
     this.ocs.m31 = this.body.position.y;
-    
+        
     // Angular velocity; scaling by 100 produces a nuch better rolling effect
     this.omega = 100 * this.body.speed / this.radius;
 
@@ -168,26 +168,12 @@ export class Ball implements IShape {
     
     // Rotation about the x-axis for the ROLL effect
     const alpha = this.omega * dt;
-    const cosAlpha = cos(alpha);
-    const sinAlpha = sin(alpha);
-    const Troll: Matrix4 = {
-      m00: 1, m01: 0, m02: 0, m03: 0,
-      m10: 0, m11: cosAlpha, m12: sinAlpha, m13: 0,
-      m20: 0, m21: -sinAlpha, m22: cosAlpha, m23: 0,
-      m30: 0, m31: 0, m32: 0, m33: 1
-    };
-    
+    const Troll = createRotationMatrixX(alpha);
+
     // Rotation about the z-axis for the SPIN effect
     const phi = 100 * this.body.angularVelocity * dt;
-    const cosPhi = cos(phi);
-    const sinPhi = sin(phi);
-    const Tspin: Matrix4 = {
-      m00: cosPhi, m01: sinPhi, m02: 0, m03: 0,
-      m10: -sinPhi, m11: cosPhi, m12: 0, m13: 0,
-      m20: 0, m21: 0, m22: 1, m23: 0,
-      m30: 0, m31: 0, m32: 0, m33: 1
-    };
-    
+    const Tspin = createRotationMatrixZ(phi);
+
     // Compute the total transformation and apply it to the OCS
     const T = mmult4all([ Rz, Troll, Rzinv, Tspin ]);
     this.ocs = mmult4(this.ocs, T);
@@ -199,6 +185,9 @@ export class Ball implements IShape {
 
   /** Renders a ball into a viewport's pixel buffer */
   public render(vp: Viewport, T: Matrix4): void {
+    if (this.isPocketed) {
+      return;
+    }
     const S = createScalingMatrix(this.radius);
     const scaler = (v: Vector3D) => applyTransform(v, S);
     applyTexture(vp, Primitives.Sphere, this.texture, T, scaler);

@@ -182,3 +182,11 @@ export function normalVector(p0: Vector3D | Vertex, p1: Vector3D | Vertex, p2: V
   const w = crossProduct(u, v);
   return normalizeVector(w);
 }
+
+export function scaleVector(v: Vector3D, scaleFactor: number): Vector3D {
+  return {
+    x: scaleFactor * v.x,
+    y: scaleFactor * v.y,
+    z: scaleFactor * v.z
+  };
+}

@@ -16,6 +16,8 @@ window['decomp'] = decomp;
 
 const { abs, tan, max, sqrt, atan2, random } = Math;
 
+const SETTLING_THRESHOLD = 4.0;
+
 export class PoolTable implements IShape {
 
   public readonly isStatic = true;
@@ -202,7 +204,7 @@ export class PoolTable implements IShape {
     //   .map(ball => !ball.isRolling())
     //   .reduce((result, val) => result && val, true);
     const weight = this.calcPerceivedSettling();
-    return weight < 5;
+    return weight < SETTLING_THRESHOLD;
   }
   
   /**
