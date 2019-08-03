@@ -1,13 +1,19 @@
 import * as Matter from 'matter-js';
-import { Vector3D, Matrix4, mmult4, mmult4all, getRandomAxes, applyTransform, createScalingMatrix, createRotationMatrixX, createRotationMatrixZ } from '../geometry/vector3d';
 import { Color, Colors } from '../colors';
 import { Constants } from '../constants';
 import { Primitives } from '../geometry/primitives';
 import { Viewport } from '../viewport';
 import { IShape } from './shape';
 import { applyTexture } from '../shader';
-
-const { cos, sin, atan2 } = Math;
+import {
+  Vector3D,
+  Matrix4,
+  getRandomAxes,
+  applyTransform,
+  createScalingMatrix,
+  normalizeVector
+} from '../geometry/vector3d';
+import { Quaternion } from '../geometry/quaternion';
 
 const ballTextureWidth = 256,
       ballTextureHeight = 128;
@@ -142,13 +148,59 @@ export class Ball implements IShape {
 
     // console.log(this.body.velocity);
 
+    // Apply rolling and spinning to this ball
+    // This solution uses quaternions for the rotation of ball's coordinate axes.
+    
+    // Ball roll axis vector (perpendicular to the linear motion direction on the z-plane)
+    // This must be normalized to create a valid rotation quaternion.
+    // Note that this vector -> 0 when speed -> 0
+    const v: Vector3D = normalizeVector({
+      x: -this.body.speed * this.body.velocity.y,
+      y: this.body.speed * this.body.velocity.x,
+      z: 0
+    });
+
+    const rollAngle = this.omega * dt;
+    const spinAngle = 100 * this.body.angularVelocity * dt;
+
+    // Create quaternions for the roll-axis and spin-axis
+    const rollAxis = Quaternion.forAxis(v, rollAngle);
+    const spinAxis = Quaternion.forAxis({ x: 0, y: 0, z: 1 }, spinAngle);
+
+    // Combined rotation quaternion (r) equivalent for the rolling and spinning
+    const r = rollAxis.multiply(spinAxis);
+
+    // Create the quaternions for the coordinates axes for this ball
+    const ex = Quaternion.forVector({ x: this.ocs.m00, y: this.ocs.m01, z: this.ocs.m02 });
+    const ey = Quaternion.forVector({ x: this.ocs.m10, y: this.ocs.m11, z: this.ocs.m12 });
+    const ez = Quaternion.forVector({ x: this.ocs.m20, y: this.ocs.m21, z: this.ocs.m22 });
+
+    // Apply the rotation quaternion and get the resulting vectors
+    // const vx = r.multiply(ex).multiply(r.conjugate()).toVector(),
+    //       vy = r.multiply(ey).multiply(r.conjugate()).toVector(),
+    //       vz = r.multiply(ez).multiply(r.conjugate()).toVector();
+    const vx = ex.rotate(r).toVector(),
+          vy = ey.rotate(r).toVector(),
+          vz = ez.rotate(r).toVector();
+
+    // Update the OCS with the rotated x,y,z-axis
+    this.ocs.m00 = vx.x; this.ocs.m01 = vx.y; this.ocs.m02 = vx.z;
+    this.ocs.m10 = vy.x; this.ocs.m11 = vy.y; this.ocs.m12 = vy.z;
+    this.ocs.m20 = vz.x; this.ocs.m21 = vz.y; this.ocs.m22 = vz.z;
+
+    this.ocs.m30 = this.body.position.x;
+    this.ocs.m31 = this.body.position.y;
+    this.ocs.m32 = this.radius;
+
+    /*
+    // This is the correspoding matrix solution for the rolling and spinning of the ball:
+
     // Ball roll axis vector (perpendicular to the linear motion direction on the z-plane)
     const v: Vector3D = {
       x: -this.body.speed * this.body.velocity.y,
       y: this.body.speed * this.body.velocity.x,
       z: 0
     };
-
     // Rotate about the z-axis such that the vector v coinsides with the x-axis
     const theta = -atan2(v.y, v.x);
     const cosTheta = cos(theta);
@@ -181,6 +233,7 @@ export class Ball implements IShape {
     this.ocs.m30 = this.body.position.x;
     this.ocs.m31 = this.body.position.y;
     this.ocs.m32 = this.radius;
+    */
   }
 
   /** Renders a ball into a viewport's pixel buffer */
