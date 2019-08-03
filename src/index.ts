@@ -54,11 +54,12 @@ const gameView = new Viewport(ctx, gameScene, {
  *****************************************************************************/
 const ballOptions: Matter.IBodyDefinition = {
   isStatic: false,
+  slop: 0,  // Don't allow to sink into other bodies
   friction: 0,
   frictionAir: .01,
   frictionStatic: .01,
   restitution: .99,
-  density: 1.7  // g/cm^3
+  density: 1.7  // g/cm^3,
 };
 const ballRadius = 57.15 / 2; // mm
 const ballRadiusTol = 0.127;  // introduces some imperfection
