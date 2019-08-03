@@ -209,10 +209,6 @@ export class Cue implements IShape {
           Matter.Body.applyForce(this.cueBall.body, this.cueBall.body.position, force);
           // console.log('Applied force:', this.strokeDist, force);
           this.strokeStep += 1;
-        } else {
-          if (this.poolTable.hasSettled()) {
-            this.state = CueState.AIMING;
-          }
         }
         break;
     }

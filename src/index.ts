@@ -6,6 +6,7 @@ import { PoolTable } from './shapes/pool-table';
 import { Viewport } from './viewport';
 import { Scene } from './scene';
 import { Cue, CueState } from './shapes/cue';
+import { PoolMonitor } from './pool-monitor';
 
 const { random } = Math;
 
@@ -14,7 +15,7 @@ stats.showPanel( 0 ); // fps
 stats.dom.style.position = 'relative';
 document.querySelector('#stats').appendChild(stats.dom);
 
-const { Engine, World, Bodies, Mouse } = Matter;
+const { Engine, World, Bodies } = Matter;
 const engine = Engine.create();
 const world = engine.world;
 world.gravity.y = 0;
@@ -27,15 +28,6 @@ document.body.focus({ preventScroll: true });
 ctx.fillStyle = 'rgb(51, 51, 51)';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.globalAlpha = 1;
-
-/*****************************************************************************
- * Game state
- *****************************************************************************/
-enum GameState {
-  AIMING,
-  STROKING
-};
-let state = GameState.AIMING;
 
 /*****************************************************************************
  * Create Scene and Viewport
@@ -105,6 +97,12 @@ gameScene
   .add(balls);
   
 /*****************************************************************************
+ * Pool monitor
+ *****************************************************************************/
+const monitor = new PoolMonitor(poolTable);
+document.querySelector('#monitor').appendChild(monitor.dom);
+
+/*****************************************************************************
  * Pool table init
  * - Stacks balls 1-15 in the triangular rack (with the rack's apex at the foot spot)
  * - Positioning of the balls on the pool table
@@ -113,8 +111,6 @@ gameScene
 poolTable.init();
 
 gameView.currentAxes = poolTable.ocs;
-
-const Wmax = new Array(200).fill(0);
 
 let dragging = false;
 
@@ -169,7 +165,7 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
     case 43:  // '+'
       // gameView.zoomOrigin(1.1);
       // gameView.zoomCenter(1.05);
-      gameView.zoomAt(M.x, M.y, 1.1);
+      gameView.zoomAt(M.x, M.y, 1.05);
       break;
     case 45:  // '-'
       // gameView.zoomOrigin(.9);
@@ -184,11 +180,15 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
     case 103: // 'g'
       gameView.toggleGrid();
       break;
-    case 87:  // 'W'
-    case 119: // 'w'
-      // Move cue forward
-      break;
   }
+});
+
+/*****************************************************************************
+ * Handle Pool Monitor events
+ *****************************************************************************/
+monitor.on('settled', data => {
+  console.log('Pool table has settled', data);
+  cue.aimAt(null);
 });
 
 /*****************************************************************************
@@ -227,60 +227,13 @@ function gameLoop(time = 0) {
 
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Update the non-pocketed balls
+  
+  // Update all non-pocketed balls
   balls.filter(ball => !ball.isPocketed).forEach(ball => ball.update());
-
-  // Game viewport and scene
+  
+  // Render game scene
   gameView.render();
   // gameScene.render(gameView);
-  
-  /*
-  // Render ball activity (during dragging)
-  //if (dragging) {
-    Wmax.fill(0);
-
-    ctx.fillStyle = '#000';
-    ctx.fillRect(canvas.width - 200, canvas.height - 125, 200, 75);    
-    ctx.lineWidth = 1;
-
-    balls
-    .filter(ball => !ball.isPocketed)
-    // .filter(ball => [0, 8].indexOf(ball.value) !== -1)
-    .forEach((ball, index) => {
-      if (ball.activity.length > 1) {
-        // ctx.beginPath();
-        // ctx.moveTo(canvas.width - 100, canvas.height - 125 - 2 * ball.activity[0]);
-        if (ball.activity[0] > Wmax[0]) {
-          Wmax[0] = ball.activity[0];
-        }        
-        for (let i = 1; i < ball.activity.length; i++) {
-          if (ball.activity[i] > Wmax[i]) {
-            Wmax[i] = ball.activity[i];
-          }
-          // ctx.lineTo(canvas.width - 100 + 0.5 * i, canvas.height - 125 - 2 * ball.activity[i]);
-        }
-        // ctx.strokeStyle = `rgba(${128  + 127 * index / 15}, ${128 * index / 15}, 64, .5)`;
-        // ctx.stroke();  
-      }
-    });
-
-    // Plot global weight max
-    ctx.save();
-    ctx.setTransform({ m11: 1, m12: 0, m21: 0, m22: -0.5, m41: canvas.width - 200, m42: canvas.height - 50 });
-    // ctx.beginPath(); ctx.fillRect(0, 0, 200, 75); ctx.clip();
-    ctx.beginPath();
-    ctx.moveTo(0, Wmax[0]);
-    for (let i = 1; i < Wmax.length; i++) {
-      ctx.lineTo(i, Wmax[i]);
-    }
-    ctx.strokeStyle = 'rgba(0,128,64,1)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
-
-  //}
-*/
 
   // Render the ball sink containing all pocketed balls
   /*

@@ -76,7 +76,7 @@ It is possible tool zoom in at a specific target location on the pool table.
 
 ## Cue
 <figure class="image">
-  <img src="screenshots/poolgame-cue.png" alt="Cue" />
+  <img src="screenshots/poolgame-cue-texture.png" alt="Cue" />
   <figcaption>Cue</figcaption>
 </figure>
 
