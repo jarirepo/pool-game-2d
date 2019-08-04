@@ -76,8 +76,15 @@ It is possible tool zoom in at a specific target location on the pool table.
 
 ## Cue
 <figure class="image">
-  <img src="screenshots/poolgame-cue-texture.png" alt="Cue" />
-  <figcaption>Cue</figcaption>
+  <img src="screenshots/poolgame-cue-texture-3.png" alt="Textured cue" />
+  <figcaption>Textured cue</figcaption>
+</figure>
+
+## Stroke collision corridor
+The cue-ball stroke collision corridor becomes visible when aiming and there are at least one ball inside the collision collision corridor. It stretches to the closest ball in the direction of the cue.
+<figure class="image">
+  <img src="screenshots/poolgame-cueball-stroke-collision-corridor.png" alt="Cue-ball stroke collision corridor" />
+  <figcaption>Cue-ball stroke collision corridor</figcaption>
 </figure>
 
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball

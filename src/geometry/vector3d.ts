@@ -137,7 +137,7 @@ export function applyTransformToVector(v: Vector3D, T: Matrix4): Vector3D {
 
 export function rotateZ(v: Vector3D, angle: number): Vector3D {
   const T = createRotationMatrixZ(angle);
-  return applyTransform(v, T);
+  return applyTransformToVector(v, T);
 }
 
 export function angleXY(v: Vector3D): number {
@@ -182,5 +182,13 @@ export function scaleVector(v: Vector3D, scaleFactor: number): Vector3D {
     x: scaleFactor * v.x,
     y: scaleFactor * v.y,
     z: scaleFactor * v.z
+  };
+}
+
+export function subtractVectors(a: Vector3D, b: Vector3D): Vector3D {
+  return {
+    x: a.x - b.x,
+    y: a.y - b.y,
+    z: a.z - b.z
   };
 }

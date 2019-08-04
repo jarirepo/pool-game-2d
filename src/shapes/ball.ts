@@ -79,7 +79,8 @@ const ballColors = {
 export class Ball implements IShape {
 
   public readonly isStatic = false;
-
+  public readonly visible = true;
+  
   /** Angular velocity for a rolling ball (in the direction of the velocity) */
   omega = 0;
   /** Object Coordinate System (OCS), relative to the pool table */
@@ -140,6 +141,14 @@ export class Ball implements IShape {
 
   public isSpinning(): boolean {
     return this.omega > 1;  // ???
+  }
+
+  public get position(): Vector3D {
+    return {
+      x: this.ocs.m30,
+      y: this.ocs.m31,
+      z: this.ocs.m32
+    };
   }
 
   /**

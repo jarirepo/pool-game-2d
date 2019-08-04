@@ -20,7 +20,8 @@ export class PoolTable implements IShape {
 
   public readonly isStatic = true;
   public readonly modified = false;
-
+  public readonly visible = true;
+  
   width: number;
   footSpotPos = { x: 1 / 2, y: 1 / 4 };   // ball rack position on the pool table
   cueBallLinePos = 3 / 4;                 // cue-ball line position on the pool table

@@ -10,6 +10,7 @@ import { Ball } from './ball';
 import { constrain } from '../utils';
 import { PoolTable } from './pool-table';
 import { Quaternion } from '../geometry/quaternion';
+import { StrokeCorridor } from './stroke-corridor';
 
 const { acos, cos, sign, sin, floor } = Math;
 
@@ -46,6 +47,8 @@ export class Cue implements IShape {
 
   public readonly isStatic = false;
   public readonly modified = false;
+  public visible = false;
+  
   public readonly geometry: Geometry;
   public texture: ImageData;
   
@@ -62,6 +65,8 @@ export class Cue implements IShape {
   private accumulator = 0;
   private lastTime = NaN;
 
+  public readonly strokeCorridor: StrokeCorridor;
+
   // public readonly sensor: Matter.Body;
 
   /** Object Coordinate System, relative to the pool table */
@@ -77,13 +82,14 @@ export class Cue implements IShape {
     private readonly cueBall: Ball,
     public readonly params: CueParams
   ) {
-    // Truncated cone along the z-axis
+    // Create a truncated cone along the z-axis
     // x = 1 corresponds to the cue's butt radius and z = 1 corresponds to the cue length
     this.geometry = Primitives.Cone.create(params.tipRadius / params.buttRadius);
-    // Apply scaling
-    const S = createScalingMatrix(params.buttRadius, params.buttRadius, params.length);
-    this.geometry.transform(S);
+    const T = createScalingMatrix(params.buttRadius, params.buttRadius, params.length);
+    this.geometry.transform(T);
 
+    this.strokeCorridor = new StrokeCorridor();
+    
     // const P = new Polyline(0, 0, 0)
     //   .lineTo(params.buttRadius, 0, 0)
     //   .lineTo(params.tipRadius, 0, params.length)
@@ -190,6 +196,8 @@ export class Cue implements IShape {
 
     this.orient(cueBallPos, v, this.cueBall.radius + this.strokeDist);
 
+    this.strokeCorridor.update(v, this.poolTable.balls);
+    
     // Start automatic warm-up strokes back and forth
     if (!this.warmup) {
       this.warmup = true;
@@ -207,6 +215,7 @@ export class Cue implements IShape {
     // this.strokeForce = 1.25 * this.strokeDist;
     this.strokeForce = strokeForce({ strokeDistance: this.strokeDist });
     this.strokeStep = 0;
+    this.strokeCorridor.hide();
   }
 
   /** Updates the warm-up stroke speed and distance */
@@ -221,6 +230,7 @@ export class Cue implements IShape {
           this.strokeDist = warmupStrokeDist(this.warmupStrokeTime);
         }
         this.lastTime = time;
+        this.visible = true;
         break;
 
       case CueState.STROKING:
@@ -230,6 +240,7 @@ export class Cue implements IShape {
           Matter.Body.applyForce(this.cueBall.body, this.cueBall.body.position, force);
           // console.log('Applied force:', this.strokeDist, force);
           this.strokeStep += 1;
+          this.visible = false;
         }
         break;
     }

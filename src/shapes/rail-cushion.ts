@@ -16,7 +16,8 @@ export interface RailCushionParams {
 export class RailCushion implements IShape {
   
   public readonly isStatic = true;
-
+  public readonly visible = true;
+  
   /** Object Coordinate System, relative to the pool table */
   public readonly ocs: Matrix4 = {
     m00: 1, m01: 0, m02: 0, m03: 0,

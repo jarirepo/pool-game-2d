@@ -116,6 +116,7 @@ gameScene
   .setTransform(poolTable.ocs)
   .add(poolTable.pockets)
   .add(poolTable.railCushions)
+  .add(cue.strokeCorridor)
   .add(cue)
   .add(balls);
   

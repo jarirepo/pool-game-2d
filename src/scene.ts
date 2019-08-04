@@ -90,7 +90,7 @@ export class Scene extends EventEmitter {
     const Tscr = vp.getTransform();
 
     // Render all STATIC shapes
-    this.shapes.filter(shapeData => shapeData.shape.isStatic).forEach((shapeData, i) => {
+    this.shapes.filter(shapeData => shapeData.shape.visible && shapeData.shape.isStatic).forEach((shapeData, i) => {
       // Compute transformation from OCS to screen coordinates and applies to the graphics context
       const T = mmult4(shapeData.transform.matrix, Tscr);
       vp.context.save();
@@ -107,7 +107,7 @@ export class Scene extends EventEmitter {
 
     // Render all DYNAMIC shapes, eg. objects having a time-varying OCS
     vp.save();
-    this.shapes.filter(shapeData => !shapeData.shape.isStatic).forEach((shapeData, i) => {
+    this.shapes.filter(shapeData => shapeData.shape.visible && !shapeData.shape.isStatic).forEach((shapeData, i) => {
       let result = shapeData.shape.ocs;
       let current = shapeData.transform.parent;
       while (current.parent) {
