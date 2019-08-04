@@ -1,6 +1,7 @@
 import * as Matter from 'matter-js';
 import { PoolTable } from './shapes/pool-table';
 import { EventEmitter } from 'events';
+import { roundTo } from './utils';
 
 const { abs, atan2, max, sqrt } = Math;
 
@@ -61,13 +62,23 @@ export class PoolMonitor extends EventEmitter {
       this.context.setTransform({ m11: 1, m12: 0, m21: 0, m22: -0.2, m41: 0, m42: this.dom.height - 1 });
       this.context.beginPath();
       this.context.moveTo(0, this.activity[0]);
-      for (let i = 1; i < this.activity.length; i++) {
+      const n = this.activity.length;
+      for (let i = 1; i < n; i++) {
         this.context.lineTo(i, this.activity[i]);
       }
       this.context.strokeStyle = 'cyan';
       this.context.lineWidth = 1;
-      this.context.stroke();
+      this.context.stroke();      
       this.context.restore();
+      // Output the global pool table settling weight value
+      this.context.fillStyle = '#000';
+      this.context.fillRect(0, 0, this.dom.width, 20);
+      this.context.fillStyle = 'cyan';
+      this.context.font = '8pt Arial';
+      this.context.textAlign = 'left';
+      this.context.textBaseline = 'middle';
+      const value = roundTo(this.activity[n - 1], 1);
+      this.context.fillText(value.toString(), 10, 10);
     }
     requestAnimationFrame(this.render.bind(this));
   }

@@ -36,7 +36,7 @@ ctx.globalAlpha = 1;
  *****************************************************************************/
 const gameScene = new Scene();
 const gameView = new Viewport(ctx, gameScene, {
-  screen: { xmin: 50, ymin: 50, xmax: canvas.width - 50, ymax: canvas.height - 125 },
+  screen: { xmin: 25, ymin: 25, xmax: canvas.width - 200, ymax: canvas.height - 125 },
   world: { xmin: -50, ymin: -50, xmax: 2300, ymax: 1200 },
   showGrid: true,
   gridSizeX: 50,
