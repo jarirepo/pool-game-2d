@@ -1,6 +1,7 @@
+import { Constants } from './../constants';
 import { Vertex } from './geometry';
 
-const { PI, random, cos, sin, atan2, sign, sqrt } = Math;
+const { random, cos, sin, atan2, sign, sqrt } = Math;
 
 export interface Vector3D {
   x: number;
@@ -56,31 +57,13 @@ export function mmult4all(matrices: Matrix4[]): Matrix4 {
 }
 
 export function getRandomAxes(): Matrix4 {
-  const alpha = random() * PI,
-        beta = random() * PI,
-        gamma = random() * PI,
-        cosAlpha = cos(alpha), sinAlpha = sin(alpha),
-        cosBeta = cos(beta), sinBeta = sin(beta),
-        cosGamma = cos(gamma), sinGamma = sin(gamma);
-  const Rx: Matrix4 = {
-    m00: 1, m01: 0, m02: 0, m03: 0,
-    m10: 0, m11: cosAlpha, m12: sinAlpha, m13: 0,
-    m20: 0, m21: -sinAlpha, m22: cosAlpha, m23: 0,
-    m30: 0, m31: 0, m32: 0, m33: 1
-  };
-  const Ry: Matrix4 = {
-    m00: cosBeta, m01: 0, m02: -sinBeta, m03: 0,
-    m10: 0, m11: 1, m12: 0, m13: 0,
-    m20: sinBeta, m21: 0, m22: cosBeta, m23: 0,
-    m30: 0, m31: 0, m32: 0, m33: 1
-  };
-  const Rz: Matrix4 = {
-    m00: cosGamma, m01: sinGamma, m02: 0, m03: 0,
-    m10: -sinGamma, m11: cosGamma, m12: 0, m13: 0,
-    m20: 0, m21: 0, m22: 1, m23: 0,
-    m30: 0, m31: 0, m32: 0, m33: 1
-  };
-  return mmult4all([Rx, Ry, Rz]);
+  const alpha = (1 - random()) * Constants.TWO_PI,
+        beta = (1 - random()) * Constants.TWO_PI,
+        gamma = (1 - random()) * Constants.TWO_PI;
+  const Rx = createRotationMatrixX(alpha),
+        Ry = createRotationMatrixY(beta),
+        Rz = createRotationMatrixZ(gamma);
+  return mmult4all([ Rx, Ry, Rz ]);
 }
 
 export function mmult(P: number[][], T: number[][]): number[][] {
@@ -101,6 +84,17 @@ export function createRotationMatrixX(angle: number): Matrix4 {
     m00: 1, m01: 0, m02: 0, m03: 0,
     m10: 0, m11: c, m12: s, m13: 0,
     m20: 0, m21: -s, m22: c, m23: 0,
+    m30: 0, m31: 0, m32: 0, m33: 1
+  };
+}
+
+export function createRotationMatrixY(angle: number): Matrix4 {
+  const c = cos(angle);
+  const s = sin(angle);
+  return {
+    m00: c, m01: 0, m02: -s, m03: 0,
+    m10: 0, m11: 1, m12: 0, m13: 0,
+    m20: s, m21: 0, m22: c, m23: 0,
     m30: 0, m31: 0, m32: 0, m33: 1
   };
 }

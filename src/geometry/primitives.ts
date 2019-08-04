@@ -117,29 +117,9 @@ function createCone(kr: number): Geometry {
         case 5: return .99;
         case 6: return .99;
         case 7: return 1;
-        // case N-3: return .961;
-        // case N-2: return .9609375;      
-        // case N-1: return 1;
-        // default:  return .1 + (.9 - .1) * i / (N - 1);
-        // default:  return i / (N - 1);
       }
-      // switch (i) {
-      //   case 0:
-      //     return 0;
-      //   case 1:
-      //     return .1;
-      //   case 2:
-      //     return .97;
-      //   case 3:
-      //     return .9609375;
-      //     // return .9;
-      //   case 4:
-      //     return 1;
-      // }
     })();
-
-    console.log(v);
-
+    
     for (let j = 0; j <= NSIZE; j++) {
       const u = j / NSIZE;
       vertices.push({ ...P[i], u, v, n: null });

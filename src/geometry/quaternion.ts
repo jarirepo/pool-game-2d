@@ -1,16 +1,12 @@
 import { Vector3D, Matrix4 } from './vector3d';
+import { Constants } from '../constants';
 
-const { cos, sin, sqrt } = Math;
+const { cos, random, sin, sqrt } = Math;
 
 /** Represents the quaternion: q = a + bi + cj + dk */
 export class Quaternion {
 
-  constructor(
-    public readonly a: number,
-    public readonly b: number,
-    public readonly c: number,
-    public readonly d: number
-  ) { }
+  constructor(public readonly a: number, public readonly b: number, public readonly c: number, public readonly d: number) { }
 
   /** Returns a quaternion for vector v */
   public static forVector(v: Vector3D): Quaternion {
@@ -23,6 +19,17 @@ export class Quaternion {
     return new Quaternion(cos(alpha / 2), v.x * s, v.y * s, v.z * s); 
   }
 
+  /** Returns a randomized orthogonal 4-by-4 rotation matrix from rotations about the x,y,z-axes */
+  public static createRandomRotationMatrix(): Matrix4 {
+    const alpha = (1 - random()) * Constants.TWO_PI,
+          beta = (1 - random()) * Constants.TWO_PI,
+          gamma = (1 - random()) * Constants.TWO_PI;
+    const qx = Quaternion.forAxis({ x: 1, y: 0, z: 0 }, alpha),
+          qy = Quaternion.forAxis({ x: 0, y: 1, z: 0 }, beta),
+          qz = Quaternion.forAxis({ x: 0, y: 0, z: 1 }, gamma);
+    return qx.multiply(qy).multiply(qz).toMatrix();
+  }
+  
   /** Returns the conjugate to this quaternion */
   public conjugate(): Quaternion {
     return new Quaternion(this.a, -this.b, -this.c, -this.d);
@@ -71,8 +78,36 @@ export class Quaternion {
   public toVector(): Vector3D {
     return { x: this.b, y: this.c, z: this.d };
   }
-
+  
+  /** Returns the orthogonal 4x4-matrix corresponding to this quaternion */
   public toMatrix(): Matrix4 {
-    return null;
+    const a2 = this.a * this.a,
+          b2 = this.b * this.b,
+          c2 = this.c * this.c,
+          d2 = this.d * this.d,
+          ab = this.a * this.b,
+          ac = this.a * this.c,
+          ad = this.a * this.d,
+          bc = this.b * this.c,
+          bd = this.b * this.d,
+          cd = this.c * this.d;
+    return {
+      m00: a2 + b2 - c2 - d2,
+      m01: 2 * (bc - ad),
+      m02: 2 * (bd + ac),
+      m03: 0,
+      m10: 2 * (bc + ad),
+      m11: a2 - b2 + c2 - d2,
+      m12: 2 * (cd - ab),
+      m13: 0,
+      m20: 2 * (bd - ac),
+      m21: 2 * (cd + ab),
+      m22: a2 - b2 - c2 + d2,
+      m23: 0,
+      m30: 0,
+      m31: 0,
+      m32: 0,
+      m33: 1
+    };
   }
 }

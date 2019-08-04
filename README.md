@@ -85,6 +85,7 @@ It is possible tool zoom in at a specific target location on the pool table.
 [bilinear-interp]: https://en.wikipedia.org/wiki/Bilinear_interpolation
 [barycentric]: https://en.wikipedia.org/wiki/Barycentric_coordinate_system
 [uv-mapping]: https://en.wikipedia.org/wiki/UV_mapping
+[quaternion-rotation]: https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
 [parcel-bundler]: https://parceljs.org/
 [issue-1]: https://github.com/parcel-bundler/parcel/issues/579
 [matter-js]: https://ghub.io/matter-js

@@ -5,14 +5,7 @@ import { Primitives } from '../geometry/primitives';
 import { Viewport } from '../viewport';
 import { IShape } from './shape';
 import { applyTexture } from '../shader';
-import {
-  Vector3D,
-  Matrix4,
-  getRandomAxes,
-  applyTransform,
-  createScalingMatrix,
-  normalizeVector
-} from '../geometry/vector3d';
+import { Vector3D, Matrix4, applyTransform, createScalingMatrix, normalizeVector } from '../geometry/vector3d';
 import { Quaternion } from '../geometry/quaternion';
 
 const ballTextureWidth = 256,
@@ -89,13 +82,13 @@ export class Ball implements IShape {
 
   /** Angular velocity for a rolling ball (in the direction of the velocity) */
   omega = 0;
-  /** Object Coordinate System (OCS), relative to the pool table, dynamic! */
-  ocs: Matrix4 = getRandomAxes();
-  texture: ImageData;  
+  /** Object Coordinate System (OCS), relative to the pool table */
+  ocs: Matrix4;
+  texture: ImageData;
   isPocketed: boolean;
   activity: number[] = [];
   modified = false;
-  
+
   constructor(
     public readonly value: number,  // Ball value 0-15
     public readonly radius: number, // Ball radius in [mm]
@@ -105,6 +98,7 @@ export class Ball implements IShape {
   public init(ctx: CanvasRenderingContext2D): void {
     this.omega = 0;
     this.isPocketed = false;
+    this.ocs = Quaternion.createRandomRotationMatrix();
     this.texture = createBallTexture(this.value, ballColors[this.value], ctx);
   }
 
@@ -170,19 +164,11 @@ export class Ball implements IShape {
     // Combined rotation quaternion (r) equivalent for the rolling and spinning
     const r = rollAxis.multiply(spinAxis);
 
-    // Create the quaternions for the coordinates axes for this ball
-    const ex = Quaternion.forVector({ x: this.ocs.m00, y: this.ocs.m01, z: this.ocs.m02 });
-    const ey = Quaternion.forVector({ x: this.ocs.m10, y: this.ocs.m11, z: this.ocs.m12 });
-    const ez = Quaternion.forVector({ x: this.ocs.m20, y: this.ocs.m21, z: this.ocs.m22 });
-
-    // Apply the rotation quaternion and get the resulting vectors
-    // const vx = r.multiply(ex).multiply(r.conjugate()).toVector(),
-    //       vy = r.multiply(ey).multiply(r.conjugate()).toVector(),
-    //       vz = r.multiply(ez).multiply(r.conjugate()).toVector();
-    const vx = ex.rotate(r).toVector(),
-          vy = ey.rotate(r).toVector(),
-          vz = ez.rotate(r).toVector();
-
+    // Create the quaternions for the coordinates axes for this ball, applies the rotation quaternion and get the resulting vectors
+    const vx = Quaternion.forVector({ x: this.ocs.m00, y: this.ocs.m01, z: this.ocs.m02 }).rotate(r).toVector(),
+          vy = Quaternion.forVector({ x: this.ocs.m10, y: this.ocs.m11, z: this.ocs.m12 }).rotate(r).toVector(),
+          vz = Quaternion.forVector({ x: this.ocs.m20, y: this.ocs.m21, z: this.ocs.m22 }).rotate(r).toVector();
+          
     // Update the OCS with the rotated x,y,z-axis
     this.ocs.m00 = vx.x; this.ocs.m01 = vx.y; this.ocs.m02 = vx.z;
     this.ocs.m10 = vy.x; this.ocs.m11 = vy.y; this.ocs.m12 = vy.z;

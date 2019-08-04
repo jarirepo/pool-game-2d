@@ -9,6 +9,7 @@ import { applyTexture } from '../shader';
 import { Ball } from './ball';
 import { constrain } from '../utils';
 import { PoolTable } from './pool-table';
+import { Quaternion } from '../geometry/quaternion';
 
 const { acos, cos, sign, sin, floor } = Math;
 
@@ -133,19 +134,27 @@ export class Cue implements IShape {
   }
 
   rotateZ(angle: number): IShape {
-    const O: Vector3D = {
-      x: this.ocs.m30,
-      y: this.ocs.m31,
-      z: this.ocs.m32
-    };
-    this.ocs.m30 = 0;
-    this.ocs.m31 = 0;
-    this.ocs.m32 = 0;
-    const T = createRotationMatrixZ(angle);
-    this.ocs = mmult4(this.ocs, T);
-    this.ocs.m30 = O.x;
-    this.ocs.m31 = O.y;
-    this.ocs.m32 = O.z;
+    // const O: Vector3D = {
+    //   x: this.ocs.m30,
+    //   y: this.ocs.m31,
+    //   z: this.ocs.m32
+    // };
+    // this.ocs.m30 = 0;
+    // this.ocs.m31 = 0;
+    // this.ocs.m32 = 0;
+    // const T = createRotationMatrixZ(angle);
+    // this.ocs = mmult4(this.ocs, T);
+    // this.ocs.m30 = O.x;
+    // this.ocs.m31 = O.y;
+    // this.ocs.m32 = O.z;
+
+    const r = Quaternion.forAxis({ x: 0, y: 0, z: 1 }, angle),
+          vx = Quaternion.forVector({ x: this.ocs.m00, y: this.ocs.m01, z: this.ocs.m02 }).rotate(r).toVector(),
+          vy = Quaternion.forVector({ x: this.ocs.m10, y: this.ocs.m11, z: this.ocs.m12 }).rotate(r).toVector(),
+          vz = Quaternion.forVector({ x: this.ocs.m20, y: this.ocs.m21, z: this.ocs.m22 }).rotate(r).toVector();
+    this.ocs.m00 = vx.x; this.ocs.m01 = vx.y; this.ocs.m02 = vx.z;
+    this.ocs.m10 = vy.x; this.ocs.m11 = vy.y; this.ocs.m12 = vy.z;
+    this.ocs.m20 = vz.x; this.ocs.m21 = vz.y; this.ocs.m22 = vz.z;
     return this;
   }
 
