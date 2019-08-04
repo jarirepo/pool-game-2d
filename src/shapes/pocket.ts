@@ -23,10 +23,17 @@ export class Pocket implements IShape {
 
   public readonly modified = false;
   
-  // balls: Ball[] = [];
-
   constructor(public readonly params: PocketParams, public readonly body: Matter.Body) { }
   
+  public moveTo(x: number, y: number, z: number): Pocket {
+    // Position is relative to the pool table
+    this.ocs.m30 = x;
+    this.ocs.m31 = y;
+    this.ocs.m32 = z;
+    Matter.Body.setPosition(this.body, { x, y });
+    return this;
+  }
+
   public isBallInside(ball: Ball): boolean {
     // Determine if the collision is just a "touch" or if the ball is "inside" the pocket
     // by measuring the ball's distance from the pocket center
@@ -35,7 +42,6 @@ export class Pocket implements IShape {
     const d2 = dx * dx + dy * dy;
     if (d2 < this.params.radius * this.params.radius) {
       ball.isPocketed = true;
-      console.log(`Ball ${ball.body.id} fell into Pocket ${this.body.id}`);
       return true;
     }
     return false;

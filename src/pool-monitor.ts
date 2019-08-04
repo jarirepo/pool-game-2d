@@ -17,6 +17,7 @@ export interface PoolMonitorOptions {
  * * 'settled' - triggered when the pool table has settled after a stroke
  * * 'pocketed' - triggered when a ball has been pocketed
  * * 'outside' - triggered when a ball is outside of the pool table
+ * * 'ballision' - triggered when two balls collide
  */
 export class PoolMonitor extends EventEmitter {
 
@@ -76,21 +77,51 @@ export class PoolMonitor extends EventEmitter {
     const pairs = event.pairs;
     let a: Matter.Body,
         b: Matter.Body;
+    let i = 0;
+    
     for (let pair of pairs) {
       a = pair.bodyA;
       b = pair.bodyB;
-      const isPocketA = a.label.startsWith('pocket'),
-            isPocketB = isPocketA ? false : b.label.startsWith('pocket'),
-            isBallA = isPocketA ? false : a.label.startsWith('ball'),
-            isBallB = isPocketB ? false : b.label.startsWith('ball');
-      if ((isPocketA || isPocketB) && (isBallA || isBallB)) {
-        // Ensure that (a) is a pocket and (b) is a ball
+
+      i++;
+      // console.log(`${i}: ${a.label} - ${b.label}`);        
+
+      let isPocketA = a.label.startsWith('pocket'),
+          isPocketB = isPocketA ? false : b.label.startsWith('pocket'),
+          isBallA = isPocketA ? false : a.label.startsWith('ball'),
+          isBallB = isPocketB ? false : b.label.startsWith('ball'),
+          isCueballSensorA = (isPocketA || isBallA) ? false : a.label === 'cueball-sensor',
+          isCueballSensorB = (isPocketB || isBallB) ? false : b.label === 'cueball-sensor';
+
+      if (isCueballSensorA) {
+        isBallA = true;
+        a = this.poolTable.balls.find(ball => ball.value === 0).body;
+        // console.log('isCueballSensorA', a);
+      } else if (isCueballSensorB) {
+        isBallB = true;
+        b = this.poolTable.balls.find(ball => ball.value === 0).body;
+        // console.log('isCueballSensorB', b);
+      }
+
+      if (isBallA && isBallB) {
+        // Collision between two balls ...
+        // Matter.js will notify about collisions even when the balls are not in motion,
+        // for example when being located inside the rack. We are only interested in collisions
+        // between moving bodies. It also has some difficulties in detecting collisions with 
+        // high-speed bodies which makes it difficult for us to correctly detect the initial
+        // collision between the cue-ball and the target ball.
+        const balls = this.poolTable.balls.filter(ball => [a.id, b.id].indexOf(ball.body.id) !== -1);
+        if (balls[0].isRolling() || balls[1].isRolling()) {
+          this.emit('ballision', balls);
+        }
+      } else if ((isPocketA || isPocketB) && (isBallA || isBallB)) {
+        // Collision between a ball and a pocket ... Ensure that (a) is a pocket and (b) is a ball
         if (!isPocketA) {
           [a, b] = [b, a];
         }
         const ball = this.poolTable.balls.find(ball => ball.body.id === b.id);
         const pocket = this.poolTable.pockets.find(pocket => pocket.body.id === a.id);
-        if (pocket && ball && !ball.isPocketed && pocket.isBallInside(ball) ) {
+        if (pocket && ball && pocket.isBallInside(ball) ) {
           this.emit('pocketed', { ball, pocket });
         }
       }

@@ -7,3 +7,10 @@ export namespace Constants {
   export const R2D = 180 / PI;
   export const D2R = PI / 180;
 }
+
+export enum CollisionCategory {
+  CUSHION = 0x0001,
+  POCKET = 0x0002,
+  BALL = 0x0004,
+  CUEBALL = 0x0008
+};

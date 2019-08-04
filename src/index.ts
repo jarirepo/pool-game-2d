@@ -8,6 +8,7 @@ import { Scene } from './scene';
 import { Cue, CueState } from './shapes/cue';
 import { PoolMonitor } from './pool-monitor';
 import { Pocket } from './shapes/pocket';
+import { CollisionCategory } from './constants';
 
 const { random } = Math;
 
@@ -46,22 +47,42 @@ const gameView = new Viewport(ctx, gameScene, {
  * Create balls
  *****************************************************************************/
 const ballOptions: Matter.IBodyDefinition = {
+  collisionFilter: {
+    group: 1, // positive number => two balls will always collide
+    category: CollisionCategory.BALL,
+    mask: CollisionCategory.CUSHION | CollisionCategory.POCKET | CollisionCategory.CUEBALL
+  },
   isStatic: false,
-  slop: 0,  // Don't allow to sink into other bodies
+  isSensor: false,
+  slop: 0,                        // prevents a ball from sinking into other bodies
   friction: 0,
   frictionAir: .01,
   frictionStatic: .01,
   restitution: .99,
-  density: 1.7  // g/cm^3,
+  density: 1.7                    // g/cm^3
 };
-const ballRadius = 57.15 / 2; // mm
-const ballRadiusTol = 0.127;  // introduces some imperfection
+const ballRadius = 57.15 / 2;     // mm
+const ballRadiusTol = 0.127 / 2;  // introduces some imperfection
 const balls: Ball[] = [];
-const ballSink: Ball[] = [];  // Ball sink  (container for all pocketed balls)
+const ballSink: Ball[] = [];      // ball sink  (container for all pocketed balls)
 for (let i = 0; i < 16; i++) {
-  const r = (i === 0) ? 0.9375 * ballRadius : ballRadius + (2 * random() - 1) * ballRadiusTol / 2;  // mm 
-  const b = Bodies.circle(0, 0, r, { ...ballOptions, label: `ball-${i}` });
-  balls.push(new Ball(i, r, b));
+  const r = (i === 0) ? 0.9375 * ballRadius : ballRadius + (2 * random() - 1) * ballRadiusTol;  // mm
+  let options: Matter.IBodyDefinition = {
+    ...ballOptions,
+    label: `ball-${i}`
+  };
+  if (i === 0) {  // Cue-ball
+    // Don't allow the cue-ball to collide with the cue-ball sensor!
+    options = {
+      ...options,
+      collisionFilter: {
+        ...options.collisionFilter,
+        mask: CollisionCategory.CUSHION | CollisionCategory.POCKET
+      }
+    };
+  }
+  const b = Bodies.circle(0, 0, r, options);
+  balls.push(new Ball(i, r, b));  
 }
 balls.forEach(ball => ball.init(ctx));
 const cueBall = balls[0];
@@ -85,6 +106,7 @@ cue.init(ctx);
 World.add(world, poolTable.cushionBodies);
 World.add(world, poolTable.pockets.map(pocket => pocket.body));
 World.add(world, balls.map(b => b.body));
+World.add(world, balls[0].sensor);
 
 /*****************************************************************************
  * Add pool table, pockets, rail cushions, cue and balls to the game scene
@@ -153,12 +175,12 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
  *****************************************************************************/
 monitor
 .on('settled', data => {
-  console.log('Pool table has settled', data);
+  console.log('Pool table has settled');
   cue.aimAt(null);
 })
 .on('pocketed', (data: { ball: Ball, pocket: Pocket }) => {
   const { ball, pocket } = data;
-  console.log(`Ball ${ball.body.id} fell into pocket ${pocket.body.id}`);
+  console.log(`Ball ${ball.value} went into pocket ${pocket.body.id}`);
   ballSink.push(ball);
   Matter.Body.setVelocity(ball.body, { x: 0, y: null });
   Matter.Body.setAngularVelocity(ball.body, 0);
@@ -169,7 +191,10 @@ monitor
   Matter.World.remove(world, ball.body);
 })
 .on('outside', (ball: Ball) => {
-  console.log(`Ball ${ball.body.id} is outside of the pool table`);
+  console.log(`Ball ${ball.value} is outside of the pool table`);
+})
+.on('ballision', (balls: Ball[]) => {
+  console.log(`Ball ${balls[0].value} collided with ball ${balls[1].value}`);
 });
 
 /*****************************************************************************

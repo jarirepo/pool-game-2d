@@ -23,6 +23,14 @@ function warmupStrokeDist(t: number): number {
   return 0.5 * MAX_STROKE_DIST * (1 + cos(OMEGA * t));
 }
 
+interface StrokeForceParams {
+  strokeDistance: number;
+}
+
+function strokeForce(params: StrokeForceParams): number {
+  return 1.0 * params.strokeDistance;
+}
+
 export interface CueParams {
   length: number;
   tipRadius: number;
@@ -53,7 +61,9 @@ export class Cue implements IShape {
   private warmupStrokeTime = 0;  
   private accumulator = 0;
   private lastTime = NaN;
-  
+
+  // public readonly sensor: Matter.Body;
+
   /** Object Coordinate System, relative to the pool table */
   ocs: Matrix4 = {
     m00: 1, m01: 0, m02: 0, m03: 0,
@@ -194,7 +204,8 @@ export class Cue implements IShape {
   public stroke(): void {
     this.state = CueState.STROKING;
     this.strokeDir = { x: this.ocs.m20, y: this.ocs.m21, z: 0 };
-    this.strokeForce = 1.25 * this.strokeDist;
+    // this.strokeForce = 1.25 * this.strokeDist;
+    this.strokeForce = strokeForce({ strokeDistance: this.strokeDist });
     this.strokeStep = 0;
   }
 

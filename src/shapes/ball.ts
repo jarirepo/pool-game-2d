@@ -1,6 +1,6 @@
 import * as Matter from 'matter-js';
 import { Color, Colors } from '../colors';
-import { Constants } from '../constants';
+import { Constants, CollisionCategory } from '../constants';
 import { Primitives } from '../geometry/primitives';
 import { Viewport } from '../viewport';
 import { IShape } from './shape';
@@ -90,11 +90,29 @@ export class Ball implements IShape {
   activity: number[] = [];
   modified = false;
 
+  public readonly sensor?: Matter.Body;
+
   constructor(
     public readonly value: number,  // Ball value 0-15
     public readonly radius: number, // Ball radius in [mm]
     public readonly body: Matter.Body
-  ) { }
+  ) {
+    if (this.value === 0) {
+      // The sensor will be moving with the cue-ball and is used to detect collisions with other balls
+      const sensorOptions: Matter.IBodyDefinition = {
+        label: 'cueball-sensor',        
+        isSensor: true, 
+        isStatic: false,
+        collisionFilter: {
+          group: -1,
+          category: CollisionCategory.CUEBALL,
+          mask: CollisionCategory.BALL
+        }
+      };
+      // this.sensor = Matter.Bodies.circle(0, 0, this.radius + 15, sensorOptions);
+      this.sensor = Matter.Bodies.circle(0, 0, this.radius, sensorOptions);
+    }
+  }
   
   public init(ctx: CanvasRenderingContext2D): void {
     this.omega = 0;
@@ -110,11 +128,14 @@ export class Ball implements IShape {
     this.ocs.m31 = y;
     this.ocs.m32 = z;
     Matter.Body.setPosition(this.body, { x, y });
+    if (this.value === 0) {
+      Matter.Body.setPosition(this.sensor, { x, y });
+    }
     return this;
   }
 
   public isRolling(): boolean {
-    return this.body.speed > .5;    
+    return this.body.speed > .1;    
   }
 
   public isSpinning(): boolean {
@@ -131,14 +152,13 @@ export class Ball implements IShape {
    * speed in [m/s], see https://github.com/liabru/matter-js/issues/179
    */
   public update(): void {    
-    // Update the ball's position from the physics engine    
-    this.ocs.m30 = this.body.position.x;
-    this.ocs.m31 = this.body.position.y;
+    // Update the ball's position from the physics engine   
+    this.moveTo(this.body.position.x, this.body.position.y, this.radius);
         
     // Angular velocity; scaling by 100 produces a nuch better rolling effect
     this.omega = 100 * this.body.speed / this.radius;
 
-    if (this.body.speed < .1) {
+    if (this.body.speed < .01) {
       return;
     }
 
@@ -175,10 +195,6 @@ export class Ball implements IShape {
     this.ocs.m00 = vx.x; this.ocs.m01 = vx.y; this.ocs.m02 = vx.z;
     this.ocs.m10 = vy.x; this.ocs.m11 = vy.y; this.ocs.m12 = vy.z;
     this.ocs.m20 = vz.x; this.ocs.m21 = vz.y; this.ocs.m22 = vz.z;
-
-    this.ocs.m30 = this.body.position.x;
-    this.ocs.m31 = this.body.position.y;
-    this.ocs.m32 = this.radius;
 
     /*
     // This is the correspoding matrix solution for the rolling and spinning of the ball:

@@ -1,5 +1,5 @@
 import * as Matter from 'matter-js';
-import { Constants } from '../constants';
+import { Constants, CollisionCategory } from '../constants';
 import { Vector3D, Matrix4, applyTransform } from '../geometry/vector3d';
 import { Polyline } from '../geometry/polyline';
 import { Pocket } from './pocket';
@@ -117,7 +117,16 @@ export class PoolTable implements IShape {
         .filter((p, k) => k < obj.polyline.p.length - 1)
         .map(p => applyTransform(p, obj.ocs))
         .map(p => ({ x: p.x, y: p.y }));
-      const body = Matter.Bodies.fromVertices(0, 0, [ P ], { ...this.options, label: `cushion-${i}` });
+      const cushionOptions: Matter.IBodyDefinition = {
+        ...this.options,
+        label: `cushion-${i}`,
+        collisionFilter: {
+          group: -1,  // Two rail cushion segments will never collide
+          category: CollisionCategory.CUSHION,
+          mask: CollisionCategory.BALL
+        }
+      };
+      const body = Matter.Bodies.fromVertices(0, 0, [ P ], cushionOptions);
       return body;
     });
 
@@ -161,15 +170,20 @@ export class PoolTable implements IShape {
       { u: 0, v: .5 }
     ];
     this.pockets = pocketPos
-      .map<Vector3D>(p => ({ x: p.u * this.width, y: p.v * this.length, z: 5 }))  // local coords.
+      .map<Vector3D>(p => ({ x: p.u * this.width, y: p.v * this.length, z: 5 }))
       .map<Pocket>((p, i) => {
-        const body = Matter.Bodies.circle(p.x, p.y, this.pocketRadius, { isSensor: true, isStatic: true, label: `pocket-${i}` });
-        const pocket = new Pocket({ radius: this.pocketRadius}, body);
-        pocket.ocs.m30 = p.x;
-        pocket.ocs.m31 = p.y;
-        pocket.ocs.m32 = p.z;
-        Matter.Body.setPosition(body, { x: p.x, y: p.y });
-        return pocket;
+        const pocketOptions: Matter.IBodyDefinition = {
+          label: `pocket-${i}`,
+          isSensor: true,
+          isStatic: true,
+          collisionFilter: {
+            group: -1,  // Two pockets will never collide
+            category: CollisionCategory.POCKET,
+            mask: CollisionCategory.BALL
+          }
+        };
+        const body = Matter.Bodies.circle(p.x, p.y, this.pocketRadius, pocketOptions);
+        return new Pocket({ radius: this.pocketRadius}, body).moveTo(p.x, p.y, p.z);                
       });
 
     console.log('Table surface polyline:', this.tablePoly);
