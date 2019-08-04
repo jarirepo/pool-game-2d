@@ -83,35 +83,62 @@ function createSphere(): Geometry {
  */
 function createCone(kr: number): Geometry {
   // Definition points (polyline generatriz since want faces at both ends)
-  const P: Vector3D[] = [
-    { x: 0, y: 0, z: 0 },
-    { x: 1, y: 0, z: 0 },
-    // { x: (1 - kr) * (1 - .8), y: 0, z: .8 },
-    { x: kr, y: 0, z: 1},
-    { x: 0, y: 0, z: 1 }
-  ];
+  // const P: Vector3D[] = [
+  //   { x: 0, y: 0, z: 0 },
+  //   { x: 1, y: 0, z: 0 },
+  //   // { x: (1 - kr) * (1 - .8), y: 0, z: .8 },
+  //   { x: kr, y: 0, z: 1},
+  //   { x: 0, y: 0, z: 1 }
+  // ];
+
+  const P: Vector3D[] = [];
+  P.push({ x: 0, y: 0, z: 0 });
+  P.push({ x: kr + (1 - kr) * (1 - 0), y: 0, z: 0 });
+  P.push({ x: kr + (1 - kr) * (1 - .25), y: 0, z: .25 });
+  P.push({ x: kr + (1 - kr) * (1 - .5), y: 0, z: .5 });
+  P.push({ x: kr + (1 - kr) * (1 - .75), y: 0, z: .75 });
+  P.push({ x: kr + (1 - kr) * (1 - .99), y: 0, z: .99 }); // Start of tip
+  P.push({ x: kr + (1 - kr) * (1 - 1.0), y: 0, z: 1.0 });
+  P.push({ x: 0, y: 0, z: 1 });
 
   // Generates the cone by rotating the profile about the z-axis
   const N = P.length;
   const T = createRotationMatrixZ(Constants.TWO_PI / NSIZE);
   const vertices: Vertex[] = [];
-  
+
   for (let i = 0; i < N; i++) {
     const v = (() => {
       switch (i) {
-        case 0:
-          return 0;
-        case 1:
-          return .1;
-        case 2:
-          return .97;
-        case 3:
-          return .9609375;
-          // return .9;
-        case 4:
-          return 1;
+        case 0: return 0;
+        case 1: return .1;
+        case 2: return .25;
+        case 3: return .5;
+        case 4: return .75;
+        case 5: return .99;
+        case 6: return .99;
+        case 7: return 1;
+        // case N-3: return .961;
+        // case N-2: return .9609375;      
+        // case N-1: return 1;
+        // default:  return .1 + (.9 - .1) * i / (N - 1);
+        // default:  return i / (N - 1);
       }
+      // switch (i) {
+      //   case 0:
+      //     return 0;
+      //   case 1:
+      //     return .1;
+      //   case 2:
+      //     return .97;
+      //   case 3:
+      //     return .9609375;
+      //     // return .9;
+      //   case 4:
+      //     return 1;
+      // }
     })();
+
+    console.log(v);
 
     for (let j = 0; j <= NSIZE; j++) {
       const u = j / NSIZE;

@@ -118,7 +118,8 @@ export class Cue implements IShape {
     ctx.fillRect(0, h / 2, w, h / 2);
     // Tip
     ctx.fillStyle = 'rgb(0,206,209)'; // dark turquoise
-    ctx.fillRect(0, h-10, w, 10);
+    // ctx.fillRect(0, h-10, w, 10);
+    ctx.fillRect(0, h-2.56, w, 2.56);
     
     this.texture = ctx.getImageData(0, 0, w, h);
   }
