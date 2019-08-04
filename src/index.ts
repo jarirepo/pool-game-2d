@@ -167,6 +167,9 @@ monitor
     y: ball.radius * 1.1
   });
   Matter.World.remove(world, ball.body);
+})
+.on('outside', (ball: Ball) => {
+  console.log(`Ball ${ball.body.id} is outside of the pool table`);
 });
 
 /*****************************************************************************

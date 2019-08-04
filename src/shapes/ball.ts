@@ -86,6 +86,7 @@ export class Ball implements IShape {
   ocs: Matrix4;
   texture: ImageData;
   isPocketed: boolean;
+  isOutside: boolean;
   activity: number[] = [];
   modified = false;
 
@@ -98,6 +99,7 @@ export class Ball implements IShape {
   public init(ctx: CanvasRenderingContext2D): void {
     this.omega = 0;
     this.isPocketed = false;
+    this.isOutside = false;
     this.ocs = Quaternion.createRandomRotationMatrix();
     this.texture = createBallTexture(this.value, ballColors[this.value], ctx);
   }

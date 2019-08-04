@@ -195,6 +195,20 @@ export class PoolTable implements IShape {
     cueBall.moveTo(this.width / 2 + (2 * random() -1) * cueBall.radius, 0.25 * this.length, cueBall.radius);
   }
 
+  /** Returns true if a non-pocketed ball is outside of the pool table surface */
+  public isBallOutside(ball: Ball): boolean {
+    if (ball.isPocketed) {
+      return false;
+    }
+    if (ball.isOutside) {
+      return true;
+    }
+    // Get ball's position on the pool table's xy-plane
+    const p = ball.body.position;
+    ball.isOutside = (p.x + ball.radius < 0) || (p.x - ball.radius > this.width) || (p.y + ball.radius < 0) || (p.y - ball.radius > this.length);
+    return ball.isOutside;
+  }
+  
   public render(vp: Viewport, T: Matrix4): void {
     // Pool table surface
     vp.context.beginPath();

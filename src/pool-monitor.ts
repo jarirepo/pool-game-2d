@@ -16,6 +16,7 @@ export interface PoolMonitorOptions {
  * Triggered events:
  * * 'settled' - triggered when the pool table has settled after a stroke
  * * 'pocketed' - triggered when a ball has been pocketed
+ * * 'outside' - triggered when a ball is outside of the pool table
  */
 export class PoolMonitor extends EventEmitter {
 
@@ -48,6 +49,7 @@ export class PoolMonitor extends EventEmitter {
       : true;
   }
 
+  /** Renders the pool table "activity graph" */
   private render(time?: number) {
     this.update();
     // Plot global activity weights
@@ -88,26 +90,46 @@ export class PoolMonitor extends EventEmitter {
         }
         const ball = this.poolTable.balls.find(ball => ball.body.id === b.id);
         const pocket = this.poolTable.pockets.find(pocket => pocket.body.id === a.id);
-        if (pocket && ball && pocket.isBallInside(ball) ) {
+        if (pocket && ball && !ball.isPocketed && pocket.isBallInside(ball) ) {
           this.emit('pocketed', { ball, pocket });
         }
       }
     }
   }
-  
-  /** Computes the "perceived" settling of the pool table */
+
+  /** Computes the "perceived settling" of the pool table */
   private update(): void {
     // this.poolTable.balls
     //   .filter(ball => !ball.isPocketed)
     //   .map(ball => !ball.isRolling())
     //   .reduce((result, val) => result && val, true);
 
-    const activeBalls = this.poolTable.balls.filter(ball => !ball.isPocketed);
+    // const activeBalls = this.poolTable.balls.filter(ball => !ball.isPocketed);
+
+    const insideBallIds = this.poolTable.balls
+      .filter(ball => !(ball.isPocketed || ball.isOutside))
+      .map(ball => ball.body.id);
+
+    const outsideBalls = this.poolTable.balls
+      .filter(ball => this.poolTable.isBallOutside(ball));
+
+    for (let ball of outsideBalls) {
+      // Only emit an event if the ball was found to be inside before the outside test
+      if (insideBallIds.indexOf(ball.body.id) !== -1) {
+        this.emit('outside', ball);
+      }
+    }
+
+    const outsideBallIds = outsideBalls.map(ball => ball.body.id);
+
+    const activeBalls = this.poolTable.balls
+      .filter(ball => !ball.isPocketed)
+      .filter(ball => outsideBallIds.indexOf(ball.body.id) === -1);
+
     let wMax = 0;
 
     for (let i = 0; i < activeBalls.length; i++) {
       const ballA = activeBalls[i];
-      const rb = ballA.radius;
       const b = ballA.body.position;
       const vA = ballA.body.velocity;
       const vAn = Matter.Vector.normalise(vA);
