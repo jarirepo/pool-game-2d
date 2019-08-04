@@ -4,15 +4,18 @@ import { EventEmitter } from 'events';
 
 const { abs, atan2, max, sqrt } = Math;
 
-const SETTLING_THRESHOLD = 4;
-
 export interface PoolMonitorOptions {
   width?: number;
   height?: number;
+  settlingThreshold?: number;
 }
 
 /**
- * Monitors the settling of the pool table
+ * Monitors the settling of the pool table and pocketing of balls
+ * 
+ * Triggered events:
+ * * 'settled' - triggered when the pool table has settled after a stroke
+ * * 'pocketed' - triggered when a ball has been pocketed
  */
 export class PoolMonitor extends EventEmitter {
 
@@ -24,7 +27,8 @@ export class PoolMonitor extends EventEmitter {
 
   constructor(
     public readonly poolTable: PoolTable,
-    public readonly options: PoolMonitorOptions = { width: 96, height: 48 }
+    private readonly engine: Matter.Engine,
+    public readonly options: PoolMonitorOptions = { width: 96, height: 48, settlingThreshold: 4.0 }
   ) {
     super();
     this.dom = document.createElement('canvas') as HTMLCanvasElement;
@@ -33,12 +37,14 @@ export class PoolMonitor extends EventEmitter {
     this.dom.setAttribute('height', `${options.height}px`);
     this.context = this.dom.getContext('2d') as CanvasRenderingContext2D;
     this.activity = [];
+    // Set up collision event handler
+    Matter.Events.on(engine, 'collisionActive', this.handleCollisions.bind(this));
     this.render()
   }
 
   public hasSettled(): boolean {
     return (this.activity.length > 0)
-      ? this.activity[this.activity.length - 1] < SETTLING_THRESHOLD
+      ? this.activity[this.activity.length - 1] < this.options.settlingThreshold
       : true;
   }
 
@@ -61,6 +67,32 @@ export class PoolMonitor extends EventEmitter {
       this.context.restore();
     }
     requestAnimationFrame(this.render.bind(this));
+  }
+
+    /** Detects pocketing of balls and triggers the 'pocketed' event */
+  private handleCollisions(event: Matter.IEventCollision<Matter.Engine>): void {
+    const pairs = event.pairs;
+    let a: Matter.Body,
+        b: Matter.Body;
+    for (let pair of pairs) {
+      a = pair.bodyA;
+      b = pair.bodyB;
+      const isPocketA = a.label.startsWith('pocket'),
+            isPocketB = isPocketA ? false : b.label.startsWith('pocket'),
+            isBallA = isPocketA ? false : a.label.startsWith('ball'),
+            isBallB = isPocketB ? false : b.label.startsWith('ball');
+      if ((isPocketA || isPocketB) && (isBallA || isBallB)) {
+        // Ensure that (a) is a pocket and (b) is a ball
+        if (!isPocketA) {
+          [a, b] = [b, a];
+        }
+        const ball = this.poolTable.balls.find(ball => ball.body.id === b.id);
+        const pocket = this.poolTable.pockets.find(pocket => pocket.body.id === a.id);
+        if (pocket && ball && pocket.isBallInside(ball) ) {
+          this.emit('pocketed', { ball, pocket });
+        }
+      }
+    }
   }
   
   /** Computes the "perceived" settling of the pool table */
@@ -225,7 +257,7 @@ export class PoolMonitor extends EventEmitter {
     if (n > 1) {
       const w0 = this.activity[n - 2];
       const w1 = this.activity[n - 1];
-      if (w0 > SETTLING_THRESHOLD && w1 < SETTLING_THRESHOLD) {
+      if (w0 > this.options.settlingThreshold && w1 < this.options.settlingThreshold) {
         const now = Date.now();
         if ((!isNaN(this.lastSettlingTime) && (now - this.lastSettlingTime > 1000)) || isNaN(this.lastSettlingTime)) {
           this.lastSettlingTime = now;

@@ -7,6 +7,7 @@ import { Viewport } from './viewport';
 import { Scene } from './scene';
 import { Cue, CueState } from './shapes/cue';
 import { PoolMonitor } from './pool-monitor';
+import { Pocket } from './shapes/pocket';
 
 const { random } = Math;
 
@@ -99,7 +100,7 @@ gameScene
 /*****************************************************************************
  * Pool monitor
  *****************************************************************************/
-const monitor = new PoolMonitor(poolTable);
+const monitor = new PoolMonitor(poolTable, engine);
 document.querySelector('#monitor').appendChild(monitor.dom);
 
 /*****************************************************************************
@@ -118,42 +119,6 @@ console.log('Rack:', rack);
 console.log('Viewport transformation:', gameView.getTransform());
 console.log('World bodies:', world);
 console.log('Scene shapes:', gameScene.shapes);
-
-/*****************************************************************************
- * Handle collision events
- *****************************************************************************/
-Matter.Events.on(engine, 'collisionActive', (event: Matter.IEventCollision<Matter.Engine>) => {
-  const pairs = event.pairs;
-  // console.log('collisionActive', pairs);
-  let a: Matter.Body, b: Matter.Body;
-  for (let pair of pairs) {
-    a = pair.bodyA;
-    b = pair.bodyB;
-    const isPocketA = a.label.startsWith('pocket');
-    const isPocketB = isPocketA ? false : b.label.startsWith('pocket');
-    const isBallA = isPocketA ? false : a.label.startsWith('ball');
-    const isBallB = isPocketB ? false : b.label.startsWith('ball');
-    if ((isPocketA || isPocketB) && (isBallA || isBallB)) {
-      // Ensure that (a) is a pocket and (b) is a ball
-      if (!isPocketA) {
-        [a, b] = [b, a];
-      }
-      const ball = balls.find(ball => ball.body.id === b.id);
-      const pocket = poolTable.pockets.find(pocket => pocket.body.id === a.id);
-      // console.log(`Collision with Ball ${ball.body.id} and Pocket ${pocket.body.id}`);
-      if ( pocket.isBallInside(ball) ) {
-        ballSink.push(ball);
-        Matter.Body.setVelocity(ball.body, { x: 0, y: null });
-        Matter.Body.setAngularVelocity(ball.body, 0);
-        Matter.Body.setPosition(ball.body, {
-          x: ballSink.length * 3 * ball.radius,
-          y: ball.radius * 1.1
-        });
-        Matter.World.remove(world, ball.body);
-      }
-    }
-  }
-});
 
 /*****************************************************************************
  * Handle keyboard events
@@ -184,15 +149,28 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
 });
 
 /*****************************************************************************
- * Handle Pool Monitor events
+ * Handle pool game events
  *****************************************************************************/
-monitor.on('settled', data => {
+monitor
+.on('settled', data => {
   console.log('Pool table has settled', data);
   cue.aimAt(null);
+})
+.on('pocketed', (data: { ball: Ball, pocket: Pocket }) => {
+  const { ball, pocket } = data;
+  console.log(`Ball ${ball.body.id} fell into pocket ${pocket.body.id}`);
+  ballSink.push(ball);
+  Matter.Body.setVelocity(ball.body, { x: 0, y: null });
+  Matter.Body.setAngularVelocity(ball.body, 0);
+  Matter.Body.setPosition(ball.body, {
+    x: ballSink.length * 3 * ball.radius,
+    y: ball.radius * 1.1
+  });
+  Matter.World.remove(world, ball.body);
 });
 
 /*****************************************************************************
- * Animation
+ * Game loop
  *****************************************************************************/
 Engine.run(engine);
 
