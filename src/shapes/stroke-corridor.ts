@@ -1,5 +1,5 @@
 import { IShape } from './shape';
-import { Matrix4, Vector3D, subtractVectors, dot, rotateZ } from '../geometry/vector3d';
+import { Matrix4, Vector3D, subtractVectors, dot } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
 import { Ball } from './ball';
 import { Quaternion } from '../geometry/quaternion';
@@ -46,9 +46,9 @@ export class StrokeCorridor implements IShape {
 
     // Create a rotation quaternion (qz) for rotation about the z-axis
     const theta = atan2(cueDir.y, cueDir.x);
-    const qz = Quaternion.forAxis({ x: 0, y: 0, z: 1 }, -theta);
-
-    // Find the closest ball ahead of the cue direction and inside the stroke collision corridor
+    const qz = Quaternion.forAxisZ(-theta);
+    
+    // Find the closest ball ahead of the cue direction and inside/crossing the stroke collision corridor
     let closestBall: Ball = null;
     let minDist = 1e6;
 
@@ -56,8 +56,7 @@ export class StrokeCorridor implements IShape {
       const u = subtractVectors(ball.position, cueBall.position);
       const a = dot(cueDir, u);
       if (a > 0 && a < minDist) {
-        const qu = Quaternion.forVector(u);
-        const ur = qu.rotate(qz).toVector();
+        const ur = Quaternion.forVector(u).rotate(qz).toVector();
         const inside = abs(ur.y) < (cueBall.radius + ball.radius);
         if (inside) {
           minDist = a;
@@ -67,7 +66,7 @@ export class StrokeCorridor implements IShape {
     }
     
     if (closestBall) {
-      // Create the geometry for the collision corridor ...
+      // Update the geometry for the collision corridor ...
       // console.log(`Ball ${closestBall.value} is inside the cue-ball stroke corridor`);
       this.p0 = cueBall.position;
       this.p1 = {
@@ -87,8 +86,7 @@ export class StrokeCorridor implements IShape {
     vp.context.moveTo(this.p0.x, this.p0.y);
     vp.context.lineTo(this.p1.x, this.p1.y);
     vp.context.lineWidth = this.corridorWidth;
-    vp.context.strokeStyle = 'rgba(255,255,255,.25)';
-    // vp.context.lineCap = 5;
+    vp.context.strokeStyle = 'rgba(255,255,255,.125)';
     vp.context.stroke();
   }
 }

@@ -1,7 +1,7 @@
 import * as Matter from 'matter-js';
 import { Geometry } from '../geometry/geometry';
 import { IShape } from './shape';
-import { Matrix4, createScalingMatrix, createRotationMatrixX, mmult4, createRotationMatrixZ, Vector3D, normalizeVector, crossProduct, dot, vectorLen, scaleVector } from '../geometry/vector3d';
+import { Matrix4, createScalingMatrix, createRotationMatrixX, mmult4, Vector3D, normalizeVector, crossProduct, dot, scaleVector } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
 import { Constants } from '../constants';
 import { Primitives } from '../geometry/primitives';
@@ -29,7 +29,7 @@ interface StrokeForceParams {
 }
 
 function strokeForce(params: StrokeForceParams): number {
-  return 1.0 * params.strokeDistance;
+  return 1.1 * params.strokeDistance;
 }
 
 export interface CueParams {
@@ -163,8 +163,8 @@ export class Cue implements IShape {
     // this.ocs.m30 = O.x;
     // this.ocs.m31 = O.y;
     // this.ocs.m32 = O.z;
-
-    const r = Quaternion.forAxis({ x: 0, y: 0, z: 1 }, angle),
+    
+    const r = Quaternion.forAxisZ(angle),
           vx = Quaternion.forVector({ x: this.ocs.m00, y: this.ocs.m01, z: this.ocs.m02 }).rotate(r).toVector(),
           vy = Quaternion.forVector({ x: this.ocs.m10, y: this.ocs.m11, z: this.ocs.m12 }).rotate(r).toVector(),
           vz = Quaternion.forVector({ x: this.ocs.m20, y: this.ocs.m21, z: this.ocs.m22 }).rotate(r).toVector();

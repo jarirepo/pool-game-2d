@@ -14,19 +14,31 @@ export class Quaternion {
   }
 
   /** Returns a quaternion for a rotation an angle alpha about vector v */
-  public static forAxis(v: Vector3D, alpha: number) {
+  public static forAxis(v: Vector3D, alpha: number): Quaternion {
     const s = sin(alpha / 2);
     return new Quaternion(cos(alpha / 2), v.x * s, v.y * s, v.z * s); 
   }
 
+  public static forAxisX(alpha: number): Quaternion {
+    return Quaternion.forAxis({ x: 1, y: 0, z: 0}, alpha);
+  }
+
+  public static forAxisY(alpha: number): Quaternion {
+    return Quaternion.forAxis({ x: 0, y: 1, z: 0}, alpha);
+  }
+  
+  public static forAxisZ(alpha: number): Quaternion {
+    return Quaternion.forAxis({ x: 0, y: 0, z: 1}, alpha);
+  }
+  
   /** Returns a randomized orthogonal 4-by-4 rotation matrix from rotations about the x,y,z-axes */
   public static createRandomRotationMatrix(): Matrix4 {
     const alpha = (1 - random()) * Constants.TWO_PI,
           beta = (1 - random()) * Constants.TWO_PI,
           gamma = (1 - random()) * Constants.TWO_PI;
-    const qx = Quaternion.forAxis({ x: 1, y: 0, z: 0 }, alpha),
-          qy = Quaternion.forAxis({ x: 0, y: 1, z: 0 }, beta),
-          qz = Quaternion.forAxis({ x: 0, y: 0, z: 1 }, gamma);
+    const qx = Quaternion.forAxisX(alpha),
+          qy = Quaternion.forAxisY(beta),
+          qz = Quaternion.forAxisZ(gamma);
     return qx.multiply(qy).multiply(qz).toMatrix();
   }
   

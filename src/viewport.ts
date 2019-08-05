@@ -1,10 +1,10 @@
 import { isUndefined } from 'util';
 import * as Matter from 'matter-js';
-import { Matrix4, mmult4, Vector3D, WCS } from './geometry/vector3d';
+import { Matrix4, Vector3D, WCS } from './geometry/vector3d';
 import { Scene } from './scene';
 import { solve2 } from './solvers';
 
-const { abs, floor, round } = Math;
+const { abs, floor } = Math;
 
 interface Rectangle {
   xmin: number;

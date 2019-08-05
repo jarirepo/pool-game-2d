@@ -1,10 +1,10 @@
-import { Matrix4, applyTransform, normalizeVector, Vector3D, dot, applyTransformToVector } from './geometry/vector3d';
+import { Matrix4, applyTransform, normalizeVector, Vector3D, applyTransformToVector } from './geometry/vector3d';
 import { Geometry } from './geometry/geometry';
 import { Viewport } from './viewport';
 import { coonsSolver } from './solvers';
 import { constrain } from './utils';
 
-const { abs, floor, max, min, sqrt } = Math;
+const { floor, max, min, sqrt } = Math;
 
 export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: Matrix4, Tpre = (v: Vector3D) => v) {
   // T: Transformation from OCS to screen coordinates

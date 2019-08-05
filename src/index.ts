@@ -205,11 +205,10 @@ Engine.run(engine);
 
 function gameLoop(time = 0) {  
   stats.begin();
-
-  // const hasSettled = poolTable.hasSettled();
-
+  
+  balls.filter(ball => !ball.isPocketed).forEach(ball => ball.update());
   cue.update(time);
-
+  
   switch (cue.state) {
     case CueState.AIMING:
       const mousePos = gameView.getMousePos();
@@ -234,13 +233,8 @@ function gameLoop(time = 0) {
 
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Update all non-pocketed balls
-  balls.filter(ball => !ball.isPocketed).forEach(ball => ball.update());
-  
-  // Render game scene
+
   gameView.render();
-  // gameScene.render(gameView);
 
   // Render the ball sink containing all pocketed balls
   /*
@@ -252,7 +246,7 @@ function gameLoop(time = 0) {
   // ballSink.forEach(ball => drawBall(ball, sinkImageData));
   ctx.putImageData(sinkImageData, 100, canvas.height - 50);
   */
-
+ 
   /*
   // Output textures for balls 1-15
   let index = 1;
@@ -267,7 +261,6 @@ function gameLoop(time = 0) {
     }
   }
   */
-
 
   stats.end();
   requestAnimationFrame(gameLoop);

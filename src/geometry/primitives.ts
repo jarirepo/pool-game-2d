@@ -1,8 +1,8 @@
-import { Vector3D, createRotationMatrixZ, applyTransform, normalVector } from './vector3d';
+import { Vector3D, createRotationMatrixZ, applyTransform } from './vector3d';
 import { Constants } from '../constants';
 import { Vertex, Face, Geometry } from '../geometry/geometry';
 
-const { cos, sin, asin, atan2, PI, sqrt } = Math;
+const { cos, sin, asin, atan2, sqrt } = Math;
 
 const MSIZE = 12;
 const NSIZE = 24;
@@ -41,7 +41,7 @@ function createFaces(M: number, N: number, V: Vertex[]): Face[] {
 function createSphere(): Geometry {
   const vertices: Vertex[] = [];
   for (let i = 0; i <= MSIZE; i++) {
-    const theta = i / MSIZE * PI,
+    const theta = i / MSIZE * Constants.PI,
           sinTheta = sin(theta),
           cosTheta = cos(theta);
     for (let j = 0; j <= NSIZE; j++) {
@@ -50,7 +50,7 @@ function createSphere(): Geometry {
             y = sinTheta * sin(phi),
             z = cosTheta,
             u = 0.5 + atan2(x, z) / Constants.TWO_PI,
-            v = 0.5 - asin(y) / PI;
+            v = 0.5 - asin(y) / Constants.PI;
       vertices.push({ x, y, z, u, v, n: null });
     }
   }

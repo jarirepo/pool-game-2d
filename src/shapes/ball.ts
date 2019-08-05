@@ -190,8 +190,8 @@ export class Ball implements IShape {
 
     // Create quaternions for the roll-axis and spin-axis
     const rollAxis = Quaternion.forAxis(v, rollAngle);
-    const spinAxis = Quaternion.forAxis({ x: 0, y: 0, z: 1 }, spinAngle);
-
+    const spinAxis = Quaternion.forAxisZ(spinAngle);
+    
     // Combined rotation quaternion (r) equivalent for the rolling and spinning
     const r = rollAxis.multiply(spinAxis);
 

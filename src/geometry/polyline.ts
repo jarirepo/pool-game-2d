@@ -1,7 +1,6 @@
-import { Vector3D, Matrix4, rotateZ, createRotationMatrixZ, applyTransform, angleXY, rotationDirectionXY } from './vector3d';
-import { Constants } from '../constants';
+import { Vector3D, createRotationMatrixZ, applyTransform, angleXY, rotationDirectionXY } from './vector3d';
 
-const { abs, sqrt, acos, asin, sign, cos, sin, atan, atan2, PI } = Math;
+const { sqrt, cos, sin } = Math;
 
 /**
  * Helper class to allow generating complex shapes

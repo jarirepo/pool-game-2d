@@ -4,7 +4,6 @@ import { isArray } from 'util';
 import { IShape } from './shapes/shape';
 import { Viewport } from './viewport';
 import { Matrix4, WCS, mmult4 } from './geometry/vector3d';
-import { Constants } from './constants';
 
 /**
  * Scene transform
