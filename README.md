@@ -87,6 +87,13 @@ The cue-ball stroke collision corridor becomes visible when aiming and there are
   <figcaption>Cue-ball stroke collision corridor</figcaption>
 </figure>
 
+## Shadows
+The cue and balls cast their shadows onto the pool table surface.
+<figure class="image">
+  <img src="screenshots/poolgame-projection-shadows.png" alt="Shadows" />
+  <figcaption>Shadows</figcaption>
+</figure>
+
 [eight-ball]: https://en.wikipedia.org/wiki/Eight-ball
 [eight-ball-rack]: https://www.wikihow.com/Rack-in-8-Ball
 [bilinear-interp]: https://en.wikipedia.org/wiki/Bilinear_interpolation

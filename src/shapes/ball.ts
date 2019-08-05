@@ -1,5 +1,5 @@
 import * as Matter from 'matter-js';
-import { Color, Colors } from '../colors';
+import { Colors } from '../colors';
 import { Constants, CollisionCategory } from '../constants';
 import { Primitives } from '../geometry/primitives';
 import { Viewport } from '../viewport';
@@ -14,7 +14,7 @@ const ballTextureWidth = 256,
 // Time step, assumimg 60 fps
 const dt = 16.7e-3;
 
-function createBallTexture(value: number, color: Color, ctx: CanvasRenderingContext2D): ImageData {
+function createBallTexture(value: number, color: Colors.Color, ctx: CanvasRenderingContext2D): ImageData {
   const c = `rgb(${color.r},${color.g},${color.b})`;
   const w = ballTextureWidth;
   const h = ballTextureHeight;

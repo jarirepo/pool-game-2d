@@ -56,7 +56,7 @@ export class Viewport {
 
   /** Depth buffer */
   public readonly zBuffer: number[];
-
+    
   /** Current coordinate system */
   public currentAxes: Matrix4 = WCS;
 

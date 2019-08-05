@@ -1,4 +1,4 @@
-import { Matrix4, applyTransform, normalizeVector, Vector3D, applyTransformToVector } from './geometry/vector3d';
+import { Matrix4, applyTransform, normalizeVector, Vector3D, applyTransformToVector, dot } from './geometry/vector3d';
 import { Geometry } from './geometry/geometry';
 import { Viewport } from './viewport';
 import { coonsSolver } from './solvers';
@@ -11,7 +11,7 @@ export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: M
   const pixels = vp.pixelBuffer.data;
 
   // Directional light source (should not be declared here...), in screen coords.!
-  const L: Vector3D = normalizeVector({ x: -2, y: -1, z: 2 });
+  const L: Vector3D = normalizeVector({ x: -2, y: -1, z: 10 });
 
   // Transform the vertices to the screen
   // This also applies a pre-transformation to the vertices (used for scaling of the unit sphere for example)
@@ -31,11 +31,71 @@ export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: M
     .map(v => v.n)
     .map(v => applyTransformToVector(v, T))
     .map(normalizeVector);
-    
-  // Scan-convert all visible faces
+
+  /**
+   * Generate shadow map
+   * Based on the projective shadow algorithm - all visible faces to the light source will cast a shadow to the plane z = 0
+   */
+  faceLoop1: for (let i = 0; i < G.faces.length; i++) {
+    const a = dot(Nscr[i], L);
+    if (a < 0) { continue faceLoop1; } // face hidden from light source
+    const face = G.faces[i];
+    const p = face.v.map(v => Pscr[v]);
+    // Project the vertices in p to the plane z = 0
+    const pp = p.map<Vector3D>(v => ({
+      x: v.x - v.z * L.x / L.z,
+      y: v.y - v.z * L.y / L.z,
+      z: 0
+    }));
+    const sxmin = floor(min(...pp.map(v => v.x)) - .5),
+          sxmax = floor(max(...pp.map(v => v.x)) + .5),
+          symin = floor(min(...pp.map(v => v.y)) - .5),
+          symax = floor(max(...pp.map(v => v.y)) + .5);
+    if (sxmin > vp.screen.xmax || sxmax < vp.screen.xmin || symin > vp.screen.ymax || symax < vp.screen.ymin) { continue faceLoop1; }
+    // Interpolation constants
+    let A: number[][];
+    switch (face.v.length) {
+      case 3:          
+        A = [
+          [ NaN, pp[1].x - pp[0].x, pp[2].x - pp[0].x, pp[0].x - pp[2].x ],
+          [ NaN, pp[1].y - pp[0].y, pp[2].y - pp[0].y, pp[0].y - pp[2].y ]
+        ];
+        break;
+      case 4:
+        A = [
+          [ NaN, pp[1].x - pp[0].x, pp[3].x - pp[0].x, pp[0].x - pp[1].x + pp[2].x - pp[3].x ],
+          [ NaN, pp[1].y - pp[0].y, pp[3].y - pp[0].y, pp[0].y - pp[1].y + pp[2].y - pp[3].y ]
+        ];
+    }
+
+    yloop1: for (let sy = symin; sy <= symax; sy++) {
+      if (sy - vp.screen.ymin < 0 || sy - vp.screen.ymin > vp.pixelBuffer.height - 1) { continue yloop1; }
+      A[1][0] = pp[0].y - sy;
+      xloop1: for (let sx = sxmin; sx <= sxmax; sx++) {
+        if (sx - vp.screen.xmin < 0 || sx - vp.screen.xmin > vp.pixelBuffer.width - 1) { continue xloop1; }
+        A[0][0] = pp[0].x - sx;
+        const params = coonsSolver(A[0], A[1]);
+        if (!params) { continue xloop1; }
+        const zBufferIndex = sx - vp.screen.xmin + (sy - vp.screen.ymin) * vp.pixelBuffer.width;
+        if (vp.zBuffer[zBufferIndex] < 0) {
+          vp.zBuffer[zBufferIndex] = 0;
+          const destIndex = zBufferIndex << 2;
+          pixels[destIndex] = 0;
+          pixels[destIndex + 1] = 70;
+          pixels[destIndex + 2] = 0;
+          pixels[destIndex + 3] = 255;
+        }
+      }
+    }
+  }
+
+  /**
+   * Scan convert all visible faces ...
+   */
   faceLoop: for (let i = 0; i < G.faces.length; i++) {
     const nz = Nscr[i].z;
 
+    // Back-face culling
     if (nz < 0) {
       continue faceLoop;
     }
@@ -51,7 +111,11 @@ export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: M
       continue faceLoop;
     }
 
-    // New scan conversion algorithm!
+    /**
+     * New scan conversion algorithm (based on Coon's linear surface) 
+     * - It has a relatively good performance for small triangular or quadrilateral faces.
+     * However, long slender diagonally aligned objects should be sliced into smaller pieces.
+     */
 
     // Polygon vertices and texture coords.
     const P = face.v.map(i => Pscr[i]);

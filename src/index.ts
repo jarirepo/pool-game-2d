@@ -195,7 +195,7 @@ monitor
   console.log(`Ball ${ball.value} is outside of the pool table`);
 })
 .on('ballision', (balls: Ball[]) => {
-  console.log(`Ball ${balls[0].value} collided with ball ${balls[1].value}`);
+  // console.log(`Ball ${balls[0].value} collided with ball ${balls[1].value}`);
 });
 
 /*****************************************************************************
