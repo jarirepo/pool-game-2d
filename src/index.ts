@@ -9,6 +9,9 @@ import { Cue, CueState } from './shapes/cue';
 import { PoolMonitor } from './pool-monitor';
 import { Pocket } from './shapes/pocket';
 import { CollisionCategory } from './constants';
+import { normalizeVector } from './geometry/vector3d';
+import { PointLight } from './lights/point-light';
+import { DirectionalLight } from './lights/directional-light';
 
 const { random } = Math;
 
@@ -38,9 +41,8 @@ const gameScene = new Scene();
 const gameView = new Viewport(ctx, gameScene, {
   screen: { xmin: 25, ymin: 25, xmax: canvas.width - 200, ymax: canvas.height - 125 },
   world: { xmin: -50, ymin: -50, xmax: 2300, ymax: 1200 },
-  showGrid: true,
-  gridSizeX: 50,
-  gridSizeY: 50
+  gridSizeX: 50, gridSizeY: 50,
+  showGrid: false, showAxes: false,
 });
 
 /*****************************************************************************
@@ -112,14 +114,23 @@ World.add(world, balls[0].sensor);
  * Add pool table, pockets, rail cushions, cue and balls to the game scene
  *****************************************************************************/
 gameScene
-  .add(poolTable)
+  .addShape(poolTable)
   .setTransform(poolTable.ocs)
-  .add(poolTable.pockets)
-  .add(poolTable.railCushions)
-  .add(cue.strokeCorridor)
-  .add(cue)
-  .add(balls);
-  
+  .addShape(poolTable.pockets)
+  .addShape(poolTable.railCushions)
+  .addShape(cue.strokeCorridor)
+  .addShape(cue)
+  .addShape(balls);
+
+/*****************************************************************************
+ * Add light(s) to the scene
+ *****************************************************************************/
+const sunLight = new DirectionalLight(normalizeVector({ x: -2, y: -1, z: 4 }));
+const tableLight = new PointLight({ x: 500, y: 400, z: -2000 });
+// gameScene.addLight([ sunLight, tableLight ]);
+// gameScene.addLight(tableLight);
+gameScene.addLight(sunLight);
+
 /*****************************************************************************
  * Pool monitor
  *****************************************************************************/
@@ -142,6 +153,7 @@ console.log('Rack:', rack);
 console.log('Viewport transformation:', gameView.getTransform());
 console.log('World bodies:', world);
 console.log('Scene shapes:', gameScene.shapes);
+console.log('Scene lights:', gameScene.lights);
 
 /*****************************************************************************
  * Handle keyboard events
@@ -182,6 +194,7 @@ monitor
 .on('pocketed', (data: { ball: Ball, pocket: Pocket }) => {
   const { ball, pocket } = data;
   console.log(`Ball ${ball.value} went into pocket ${pocket.body.id}`);
+  ball.visible = false;
   ballSink.push(ball);
   Matter.Body.setVelocity(ball.body, { x: 0, y: null });
   Matter.Body.setAngularVelocity(ball.body, 0);

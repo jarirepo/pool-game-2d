@@ -17,12 +17,16 @@ export interface Matrix4 {
 }
 
 /** World Coordinate System */
-export const WCS: Matrix4 = {
+const WCS: Matrix4 = {
   m00: 1, m01: 0, m02: 0, m03: 0,
   m10: 0, m11: 1, m12: 0, m13: 0,
   m20: 0, m21: 0, m22: 1, m23: 0,
   m30: 0, m31: 0, m32: 0, m33: 1
 };
+
+export function createWCS(): Matrix4 {
+  return { ...WCS };
+}
 
 export function mmult4(a: Matrix4, b: Matrix4): Matrix4 {
   return {
@@ -191,4 +195,8 @@ export function subtractVectors(a: Vector3D, b: Vector3D): Vector3D {
     y: a.y - b.y,
     z: a.z - b.z
   };
+}
+
+export function createVector(x: number, y: number, z = 0): Vector3D {
+  return { x, y, z};
 }

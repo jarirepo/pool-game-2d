@@ -1,8 +1,9 @@
-import { Constants } from '../constants';
+import { Constants, ShadowCategory } from '../constants';
 import { Matrix4, mmult4, createRotationMatrixZ } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
 import { Polyline } from '../geometry/polyline';
-import { IShape } from './shape';
+import { IShape, ShadowFilter } from './shape';
+import { Geometry } from '../geometry/geometry';
 
 const { tan } = Math;
 
@@ -17,7 +18,13 @@ export class RailCushion implements IShape {
   
   public readonly isStatic = true;
   public readonly visible = true;
-  
+  public readonly geometry: Geometry;
+  public readonly canCastShadow = true;
+  public readonly shadowFilter: ShadowFilter = {
+    category: ShadowCategory.CUSHION,
+    // mask: ShadowCategory.CUE | ShadowCategory.BALL
+    mask: ShadowCategory.CUE
+  };
   /** Object Coordinate System, relative to the pool table */
   public readonly ocs: Matrix4 = {
     m00: 1, m01: 0, m02: 0, m03: 0,
@@ -41,13 +48,17 @@ export class RailCushion implements IShape {
         .lineTo(params.length - (chamferLen - chamferLineLen) * Constants.SQRT_2 / 2, (chamferLen - chamferLineLen) * Constants.SQRT_2 / 2)
         .arcTo(params.length - params.width - chamferLineLen, params.width)
         .lineTo(params.width + chamferLineLen, params.width)
-        .arcTo(params.width - chamferLineLen * Constants.SQRT_2 / 2, params.width - chamferLineLen * Constants.SQRT_2 / 2)
-        .close();
+        .arcTo(params.width - chamferLineLen * Constants.SQRT_2 / 2, params.width - chamferLineLen * Constants.SQRT_2 / 2);
       this.boundary = this.polyline.toPath2D();
+      // Create solid polygon (since rail cushions can receive shadows)
+      console.log('Creating rail cushion geometry');
+      this.geometry = Geometry.fromVertices(this.polyline.p);
+      console.log('Rail cushion geometry:', this.geometry);
     } else if (params.clone) {
       // Shared local polyline and boundary objects
       this.polyline = params.clone.polyline;
       this.boundary = params.clone.boundary;
+      this.geometry = params.clone.geometry;
       this.ocs = { ...params.clone.ocs };
     }
   }
@@ -75,7 +86,7 @@ export class RailCushion implements IShape {
     return new RailCushion({ clone: this });
   }
 
-  public render(vp: Viewport, T: Matrix4): void {
+  public render(vp: Viewport): void {
     vp.context.beginPath();
     vp.context.fillStyle = 'green';
     vp.context.fill(this.boundary);

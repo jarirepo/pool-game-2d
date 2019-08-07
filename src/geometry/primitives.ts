@@ -10,6 +10,7 @@ const NSIZE = 24;
 /** Returns the F:(V)-graph, face normals */
 function createFaces(M: number, N: number, V: Vertex[]): Face[] {
   const F: Face[] = [];
+  let index = 0;
   for (let i = 0; i < M; i++) {
     for (let j = 0; j < N; j++) {
       // Create quadrilateral face (the faces at the poles will degenerate into triangular faces)
@@ -29,7 +30,8 @@ function createFaces(M: number, N: number, V: Vertex[]): Face[] {
         const m = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
         return { x: v.x / m, y: v.y / m, z: v.z / m };
       });
-      F.push({ v: [ n1, n2, n3, n4 ], n: null, e });
+      F.push({ v: [ n1, n2, n3, n4 ], n: null, e, index });
+      index++;
     }
   }
   return F;
@@ -39,6 +41,7 @@ function createFaces(M: number, N: number, V: Vertex[]): Face[] {
  * Generates a unit sphere (normalized coords.)
  */
 function createSphere(): Geometry {
+  console.log('createSphere');
   const vertices: Vertex[] = [];
   for (let i = 0; i <= MSIZE; i++) {
     const theta = i / MSIZE * Constants.PI,
@@ -82,6 +85,7 @@ function createSphere(): Geometry {
  *  * < 1 - create a truncated cone (top radius will be kr)
  */
 function createCone(kr: number): Geometry {
+  console.log('createCone');
   // Definition points (polyline generatriz since want faces at both ends)
   // const P: Vector3D[] = [
   //   { x: 0, y: 0, z: 0 },
@@ -130,7 +134,7 @@ function createCone(kr: number): Geometry {
   // The faces will be ordered in strips around the cone from bottom to top
   const faces = createFaces(N-1, NSIZE, vertices);
   // console.log('Cone faces:', ...faces.map(face => face.v));
-  
+
   return new Geometry(vertices, faces);
 }
 

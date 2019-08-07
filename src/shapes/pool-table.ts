@@ -1,13 +1,14 @@
 import * as Matter from 'matter-js';
-import { Constants, CollisionCategory } from '../constants';
+import { Constants, CollisionCategory, ShadowCategory } from '../constants';
 import { Vector3D, Matrix4, applyTransform } from '../geometry/vector3d';
 import { Polyline } from '../geometry/polyline';
 import { Pocket } from './pocket';
 import { RailCushion } from './rail-cushion';
 import { Rack } from '../rack';
 import { Ball } from './ball';
-import { IShape } from './shape';
+import { IShape, ShadowFilter } from './shape';
 import { Viewport } from '../viewport';
+import { Geometry } from '../geometry/geometry';
 
 // https://github.com/liabru/matter-js/issues/559
 // window['decomp'] = require('poly-decomp');
@@ -21,7 +22,12 @@ export class PoolTable implements IShape {
   public readonly isStatic = true;
   public readonly modified = false;
   public readonly visible = true;
-  
+  public readonly geometry: Geometry;
+  public readonly canCastShadow = false;
+  public readonly shadowFilter: ShadowFilter = {
+    category: ShadowCategory.TABLE,
+    mask: ShadowCategory.CUE | ShadowCategory.BALL | ShadowCategory.CUSHION
+  };
   width: number;
   footSpotPos = { x: 1 / 2, y: 1 / 4 };   // ball rack position on the pool table
   cueBallLinePos = 3 / 4;                 // cue-ball line position on the pool table
@@ -69,15 +75,68 @@ export class PoolTable implements IShape {
     this.ocs.m30 = 50; this.ocs.m31 = this.width + 50; this.ocs.m32 = 0;  // origin
 
     // Polygon for the pool table surface
+    // this.tablePoly = new Polyline(this.pocketRadius, 0)
+    //   .lineTo(this.width - this.pocketRadius, 0)
+    //   .arcTo(this.width, pocketRadius)
+    //   .lineTo(this.width, this.length - this.pocketRadius)
+    //   .arcTo(this.width - this.pocketRadius, this.length)
+    //   .lineTo(this.pocketRadius, this.length)
+    //   .arcTo(0, this.length - this.pocketRadius)
+    //   .lineTo(0, this.pocketRadius)
+    //   .arcTo(this.pocketRadius, 0);
+
+    // Non-convex!
+    // this.tablePoly = new Polyline(this.pocketRadius, 0)
+    //   .lineTo(this.width - this.pocketRadius, 0)
+    //   .setDir(Constants.HALF_PI)
+    //   .arcTo(this.width, this.pocketRadius)
+    //   .lineTo(this.width, this.length / 2 - this.pocketRadius)
+    //   .setDir(Constants.PI)
+    //   .arcTo(this.width, this.length / 2 + this.pocketRadius, 6)
+    //   .lineTo(this.width, this.length - this.pocketRadius)
+    //   .setDir(Constants.PI)
+    //   .arcTo(this.width - this.pocketRadius, this.length)
+    //   .lineTo(this.pocketRadius, this.length)
+    //   .setDir(-Constants.HALF_PI)
+    //   .arcTo(0, this.length - this.pocketRadius)
+    //   .lineTo(0, this.length / 2 + this.pocketRadius)
+    //   .setDir(0)
+    //   .arcTo(0, this.length / 2 - this.pocketRadius, 6)
+    //   .lineTo(0, this.pocketRadius)
+    //   .setDir(0)
+    //   .arcTo(this.pocketRadius, 0);
+
     this.tablePoly = new Polyline(this.pocketRadius, 0)
+      .lineTo(this.pocketRadius + this.cushionWidth, this.cushionWidth)
+      .lineTo(this.width - this.pocketRadius - this.cushionWidth, this.cushionWidth)
       .lineTo(this.width - this.pocketRadius, 0)
-      .arcTo(this.width, pocketRadius)
+      .setDir(Constants.HALF_PI)
+      .arcTo(this.width, this.pocketRadius)
+      
+      .lineTo(this.width - this.cushionWidth, this.pocketRadius + this.cushionWidth)
+      .lineTo(this.width - this.cushionWidth, this.length / 2 - this.cushionWidth - this.pocketRadius)
+      .lineTo(this.width, this.length / 2 - this.pocketRadius)
+      // .lineTo(this.width, this.length / 2 - this.pocketRadius)
+      .setDir(Constants.PI)
+      .arcTo(this.width, this.length / 2 + this.pocketRadius, 6)
       .lineTo(this.width, this.length - this.pocketRadius)
+      .setDir(Constants.PI)
       .arcTo(this.width - this.pocketRadius, this.length)
       .lineTo(this.pocketRadius, this.length)
+      .setDir(-Constants.HALF_PI)
       .arcTo(0, this.length - this.pocketRadius)
+      .lineTo(0, this.length / 2 + this.pocketRadius)
+      .setDir(0)
+      .arcTo(0, this.length / 2 - this.pocketRadius, 6)
       .lineTo(0, this.pocketRadius)
-      .arcTo(this.pocketRadius, 0);    
+      .setDir(0)
+      .arcTo(this.pocketRadius, 0);
+
+    // Create solid polygon (since the pool table can receive shadows)
+    console.log('Creating pool table geometry');
+    this.geometry = Geometry.fromVertices(this.tablePoly.p.filter((_, i, arr) => i < arr.length - 1));
+    console.log('Pool table geometry:', this.geometry);
+
     this.boundary = this.tablePoly.toPath2D();
 
     // Rail cushion segment, relative to the pool table.
@@ -105,7 +164,7 @@ export class PoolTable implements IShape {
       { x: 0, y: this.length - this.pocketRadius },
       { x: 0, y: this.length / 2 - this.pocketRadius }
     ]
-    .forEach((p, i) => this.railCushions[i].moveTo(p.x, p.y, 10));
+    .forEach((p, i) => this.railCushions[i].moveTo(p.x, p.y, 30));
 
     /**
      * Create cushion segment bodies for the physics world
@@ -224,7 +283,7 @@ export class PoolTable implements IShape {
     return ball.isOutside;
   }
   
-  public render(vp: Viewport, T: Matrix4): void {
+  public render(vp: Viewport): void {
     // Pool table surface
     vp.context.beginPath();
     vp.context.fillStyle = 'rgba(0,80,0,1)';

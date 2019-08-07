@@ -4,7 +4,7 @@ import { Matrix4, Vector3D, WCS } from './geometry/vector3d';
 import { Scene } from './scene';
 import { solve2 } from './solvers';
 
-const { abs, floor } = Math;
+const { abs, floor, min, max } = Math;
 
 interface Rectangle {
   xmin: number;
@@ -53,10 +53,13 @@ export class Viewport {
   /** Buffer that can be used for rendering of dynamic shapes */
   public pixelBuffer: ImageData;
   // public readonly pixelBuffer: ImageData;
-
+  
   /** Depth buffer */
   public readonly zBuffer: number[];
-    
+
+  /** Shadow buffer */
+  public shadowBuffer: ImageData;
+
   /** Current coordinate system */
   public currentAxes: Matrix4 = WCS;
 
@@ -87,12 +90,20 @@ export class Viewport {
     this.generateGridPoints();
 
     // this.pixelBuffer = this.context.createImageData(this.screen.xmax - this.screen.xmin, this.screen.ymax - this.screen.ymin);
-    this.zBuffer = new Array<number>((this.screen.xmax - this.screen.xmin) * (this.screen.ymax - this.screen.ymin));
+    this.zBuffer = new Array<number>(this.width * this.height);
 
     this.scene.on('modified', args => {
       console.log('Scene modified', args);
       // TODO: Render the view...
     });
+  }
+
+  public get width(): number {
+    return this.screen.xmax - this.screen.xmin;
+  }
+
+  public get height(): number {
+    return this.screen.ymax - this.screen.ymin;
   }
 
   /** Returns the transformation from world to screen coordinates */
@@ -202,16 +213,34 @@ export class Viewport {
     return !(x < this.screen.xmin || x > this.screen.xmax || y < this.screen.ymin || y > this.screen.ymax);
   }
 
+  /** Returns true if the polygon vertices in p is inside the viewport */
+  public isPolygonInside(p: Vector3D[]): boolean {
+    const px = p.map(v => v.x);
+    const xmin = min(...px);
+    if (xmin > this.screen.xmax) { return false; }
+    const xmax = max(...px);
+    if (xmax < this.screen.xmin) { return false; }
+    const py = p.map(v => v.y);
+    const ymin = min(...py);
+    if (ymin > this.screen.ymax) { return false; }
+    const ymax = max(...py);
+    if (ymax < this.screen.ymin) { return false; }
+    return true;
+  }
+
   /** Saves the current image data */
   public save(): void {
-    this.pixelBuffer = this.context.getImageData(this.screen.xmin, this.screen.ymin, this.screen.xmax - this.screen.xmin, this.screen.ymax - this.screen.ymin);
-    // const buffer = this.context.getImageData(this.screen.xmin, this.screen.ymin, this.screen.xmax - this.screen.xmin, this.screen.ymax - this.screen.ymin);
+    this.pixelBuffer = this.context.getImageData(this.screen.xmin, this.screen.ymin, this.width, this.height);
+    this.shadowBuffer = this.context.getImageData(this.screen.xmin, this.screen.ymin, this.width, this.height);
   }
 
   /** Restores saved image data */
   public restore(): void {
     if (this.pixelBuffer) {
       this.context.putImageData(this.pixelBuffer, this.screen.xmin, this.screen.ymin);
+    }
+    if (this.shadowBuffer) {
+      // this.context.putImageData(this.shadowBuffer, this.screen.xmin, this.screen.ymin);
     }
   }
 
@@ -225,7 +254,7 @@ export class Viewport {
     } else {
       // Window
       this.context.beginPath();
-      this.context.rect(this.screen.xmin, this.screen.ymin, this.screen.xmax - this.screen.xmin, this.screen.ymax - this.screen.ymin);
+      this.context.rect(this.screen.xmin, this.screen.ymin, this.width, this.height);
       this.context.fillStyle = '#111';
       this.context.strokeStyle = '#fff';
       this.context.lineWidth = 1;
@@ -259,7 +288,7 @@ export class Viewport {
         this.context.strokeStyle = 'yellowgreen';
         this.context.stroke();
       }
-      this.imageBuffer = this.context.getImageData(this.screen.xmin, this.screen.ymin, this.screen.xmax - this.screen.xmin, this.screen.ymax - this.screen.ymin);
+      this.imageBuffer = this.context.getImageData(this.screen.xmin, this.screen.ymin, this.width, this.height);
       this.redrawGrid = false;
     }
     // Scene
@@ -268,8 +297,8 @@ export class Viewport {
   
   /** Calculates the scale factors (from world -> screen) and returns the aspect ratio */
   private calcScaleFactors(): number {
-    this.xScl = (this.screen.xmax - this.screen.xmin) / (this.world.xmax - this.world.xmin);
-    this.yScl = -(this.screen.ymax - this.screen.ymin) / (this.world.ymax - this.world.ymin);
+    this.xScl = this.width / (this.world.xmax - this.world.xmin);
+    this.yScl = -this.height / (this.world.ymax - this.world.ymin);
     return abs(this.xScl / this.yScl);
   }
 
@@ -286,14 +315,14 @@ export class Viewport {
       if (aspectRatio < 1) {
         // Adjust y-axis limits to match the x-axis scale
         // sx = -(opts.screen.ymax - opts.screen.ymin) / (opts.world.ymax - opts.world.ymin + 2 * h)
-        const h = ((this.screen.ymax - this.screen.ymin) / this.xScl - (this.world.ymax - this.world.ymin)) / 2;
+        const h = (this.height / this.xScl - (this.world.ymax - this.world.ymin)) / 2;
         this.world.ymin -= h;
         this.world.ymax += h;
         // console.log('Adjusted y-axis limits');
       } else {
         // Adjust x-axis limits to match the y-axis scale
         // -sy = (opts.screen.xmax - opts.screen.xmin) / ((opts.world.xmax - opts.world.xmin + 2 * h)
-        const h = (-(this.screen.xmax - this.screen.xmin) / this.yScl - (this.world.xmax - this.world.xmin)) / 2;
+        const h = (-this.width / this.yScl - (this.world.xmax - this.world.xmin)) / 2;
         this.world.xmin -= h;
         this.world.xmax += h;
         // console.log('Adjusted x-axis limits');

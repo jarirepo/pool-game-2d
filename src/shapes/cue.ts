@@ -1,9 +1,9 @@
 import * as Matter from 'matter-js';
 import { Geometry } from '../geometry/geometry';
-import { IShape } from './shape';
+import { IShape, ShadowFilter, Transform } from './shape';
 import { Matrix4, createScalingMatrix, createRotationMatrixX, mmult4, Vector3D, normalizeVector, crossProduct, dot, scaleVector } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
-import { Constants } from '../constants';
+import { Constants, ShadowCategory } from '../constants';
 import { Primitives } from '../geometry/primitives';
 import { applyTexture } from '../shader';
 import { Ball } from './ball';
@@ -47,8 +47,13 @@ export class Cue implements IShape {
 
   public readonly isStatic = false;
   public readonly modified = false;
+  public readonly canCastShadow = true;
+  public readonly shadowFilter: ShadowFilter = {
+    category: ShadowCategory.CUE,
+    mask: 0
+  };
   public visible = false;
-  
+
   public readonly geometry: Geometry;
   public texture: ImageData;
   
@@ -76,6 +81,17 @@ export class Cue implements IShape {
     m20: 0, m21: 0, m22: 1, m23: 0,
     m30: 0, m31: 0, m32: 0, m33: 1
   };
+
+  // Attributes set when rendering the scene
+  transform?: Transform;
+  /** Total transformation to screen coords. */
+  T?: Matrix4;
+  /** Transformed vertices to screen coords. */
+  Pscr?: Vector3D[];
+  /** Transformed face normals to screen coords. */
+  Nscr?: Vector3D[];
+  /** Transformed vertex normals to screen coords. */
+  Vscr?: Vector3D[];
 
   constructor(
     private readonly poolTable: PoolTable,
@@ -112,17 +128,14 @@ export class Cue implements IShape {
   init(ctx: CanvasRenderingContext2D): void {
     const T = createRotationMatrixX(-95 * Constants.D2R);
     this.ocs = mmult4(this.ocs, T);
-
-    // this.moveTo(800, 200, 500);
     const target: Vector3D = { x: this.poolTable.width / 2, y: this.poolTable.length / 2, z: 100 };
     const v: Vector3D = { x: 0, y: 1, z: 0 };
     this.orient(target, v, 0);
 
-
-    // TODO: Create texture...
-    const w = 64;
+    // Create texture...
+    const w = 16;
     const h = 256;
-
+    
     ctx.clearRect(0, 0, w, h);
 
     // Handle
@@ -137,7 +150,7 @@ export class Cue implements IShape {
     ctx.fillStyle = 'rgb(0,206,209)'; // dark turquoise
     // ctx.fillRect(0, h-10, w, 10);
     ctx.fillRect(0, h-2.56, w, 2.56);
-    
+
     this.texture = ctx.getImageData(0, 0, w, h);
   }
 
@@ -247,9 +260,12 @@ export class Cue implements IShape {
   }
 
   /** Renders a cue into a viewport's pixel buffer */
-  public render(vp: Viewport, T: Matrix4): void {
+  public render(vp: Viewport): void {
     if (this.state === CueState.AIMING) {
-      applyTexture(vp, this.geometry, this.texture, T);
+      this.Vscr[0].x = 0;
+      this.Vscr[0].y = 0;
+      this.Vscr[0].z = 1;
+      applyTexture(vp, this);
     }
   }
 
@@ -274,7 +290,7 @@ export class Cue implements IShape {
     const cuePos: Vector3D = {
       x: target.x - a * v.x,
       y: target.y - a * v.y,
-      z: target.z - a * zAxis.z + 100 // ensures that the cue stays above the balls
+      z: target.z - a * zAxis.z + 65 // ensures that the cue stays above the balls
     };
     // Rotates the cue about the z-axis with the cue-ball as the center of rotation
     this.moveTo(cuePos.x - target.x, cuePos.y - target.y, cuePos.z - target.x);

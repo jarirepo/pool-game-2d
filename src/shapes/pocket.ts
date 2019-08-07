@@ -1,8 +1,8 @@
 import * as Matter from 'matter-js';
-import { Constants } from '../constants';
+import { Constants, ShadowCategory } from '../constants';
 import { Matrix4 } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
-import { IShape } from './shape';
+import { IShape, ShadowFilter } from './shape';
 import { Ball } from './ball';
 
 export interface PocketParams {
@@ -13,14 +13,18 @@ export class Pocket implements IShape {
 
   public readonly isStatic = true;
   public readonly visible = true;
-  
+  public readonly canCastShadow = false;
+  public readonly shadowFilter: ShadowFilter = {
+    category: ShadowCategory.TABLE,
+    mask: 0
+  };
   // Object Coordinate System, relative to the pool table
   public readonly ocs: Matrix4 = {
     m00: 1, m01: 0, m02: 0, m03: 0,
     m10: 0, m11: 1, m12: 0, m13: 0,
     m20: 0, m21: 0, m22: 1, m23: 0,
     m30: 0, m31: 0, m32: 0, m33: 1
-  }
+  };
 
   public readonly modified = false;
   
@@ -48,10 +52,10 @@ export class Pocket implements IShape {
     return false;
   }
   
-  public render(vp: Viewport, T: Matrix4): void {
-    vp.context.beginPath();
-    vp.context.arc(0, 0, this.params.radius, 0, Constants.TWO_PI);
-    vp.context.fillStyle = '#111';
-    vp.context.fill();
+  public render(vp: Viewport): void {
+    // vp.context.beginPath();
+    // vp.context.arc(0, 0, this.params.radius, 0, Constants.TWO_PI);
+    // vp.context.fillStyle = '#111';
+    // vp.context.fill();
   }
 }

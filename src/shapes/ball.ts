@@ -1,12 +1,13 @@
 import * as Matter from 'matter-js';
 import { Colors } from '../colors';
-import { Constants, CollisionCategory } from '../constants';
+import { Constants, CollisionCategory, ShadowCategory } from '../constants';
 import { Primitives } from '../geometry/primitives';
 import { Viewport } from '../viewport';
-import { IShape } from './shape';
+import { IShape, ShadowFilter, Transform } from './shape';
 import { applyTexture } from '../shader';
 import { Vector3D, Matrix4, applyTransform, createScalingMatrix, normalizeVector } from '../geometry/vector3d';
 import { Quaternion } from '../geometry/quaternion';
+import { Geometry } from '../geometry/geometry';
 
 const ballTextureWidth = 256,
       ballTextureHeight = 128;
@@ -79,8 +80,13 @@ const ballColors = {
 export class Ball implements IShape {
 
   public readonly isStatic = false;
-  public readonly visible = true;
-  
+  public visible = false;
+  public readonly canCastShadow = true;
+  public readonly shadowFilter: ShadowFilter = {
+    category: ShadowCategory.BALL,
+    mask: 0,
+    // mask: ShadowCategory.CUE
+  };  
   /** Angular velocity for a rolling ball (in the direction of the velocity) */
   omega = 0;
   /** Object Coordinate System (OCS), relative to the pool table */
@@ -90,6 +96,21 @@ export class Ball implements IShape {
   isOutside: boolean;
   activity: number[] = [];
   modified = false;
+  public readonly geometry: Geometry;
+
+  // Pre-transformation before transforming vertices to screen coords. since all balls share the vertices from the sphere primitive
+  pretransform: Matrix4;
+
+  // Attributes set when rendering the scene
+  transform?: Transform;
+  /** Total transformation to screen coords. */
+  T?: Matrix4;
+  /** Transformed vertices to screen coords. */
+  Pscr?: Vector3D[];
+  /** Transformed face normals to screen coords. */
+  Nscr?: Vector3D[];
+  /** Transformed vertex normals to screen coords. */
+  Vscr?: Vector3D[];
 
   public readonly sensor?: Matter.Body;
 
@@ -98,6 +119,9 @@ export class Ball implements IShape {
     public readonly radius: number, // Ball radius in [mm]
     public readonly body: Matter.Body
   ) {
+    this.geometry = Primitives.Sphere;
+    this.pretransform = createScalingMatrix(this.radius);
+
     if (this.value === 0) {
       // The sensor will be moving with the cue-ball and is used to detect collisions with other balls
       const sensorOptions: Matter.IBodyDefinition = {
@@ -117,6 +141,7 @@ export class Ball implements IShape {
   
   public init(ctx: CanvasRenderingContext2D): void {
     this.omega = 0;
+    this.visible = true;
     this.isPocketed = false;
     this.isOutside = false;
     this.ocs = Quaternion.createRandomRotationMatrix();
@@ -250,12 +275,10 @@ export class Ball implements IShape {
   }
 
   /** Renders a ball into a viewport's pixel buffer */
-  public render(vp: Viewport, T: Matrix4): void {
+  public render(vp: Viewport): void {
     if (this.isPocketed) {
       return;
     }
-    const S = createScalingMatrix(this.radius);
-    const scaler = (v: Vector3D) => applyTransform(v, S);
-    applyTexture(vp, Primitives.Sphere, this.texture, T, scaler);
+    applyTexture(vp, this);
   }
 }

@@ -39,7 +39,7 @@ export class Polyline {
    * 
    * http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.87.3282&rep=rep1&type=pdf
    */
-  public arcTo(x: number, y: number): Polyline {
+  public arcTo(x: number, y: number, numseg = 3): Polyline {
     // console.log('arcTo');
     if (this.v.x === 0 && this.v.y === 0 && this.v.z === 0) {
       console.log('Invalid direction vector');
@@ -48,9 +48,7 @@ export class Polyline {
     /**
      * Set p0 as the origin
      * Rotate point p1 and vector v about the z-axis to let p1=(x1,y1) coinside with the x-axis
-     */
-    const numseg = 3;
-    
+     */    
     const p0 = this.p[ this.p.length-1 ];
     const p1: Vector3D = { x: x - p0.x, y: y - p0.y, z: 0 };
     const rz = angleXY(p1);
@@ -84,6 +82,19 @@ export class Polyline {
     this.v.x = te.x;
     this.v.y = te.y;
     this.v.z = te.z;
+    return this;
+  }
+
+  setDir(v: Vector3D | number): Polyline {
+    if (typeof(v) === 'number') {
+      this.v.x = cos(v);
+      this.v.y = sin(v);
+      this.v.z = 0;
+    } else {
+      this.v.x = v.x;
+      this.v.y = v.y;
+      this.v.z = v.z;
+    }
     return this;
   }
 

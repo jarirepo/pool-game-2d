@@ -1,18 +1,37 @@
-import { Matrix4, applyTransform, normalizeVector, Vector3D, applyTransformToVector, dot } from './geometry/vector3d';
-import { Geometry } from './geometry/geometry';
+import { Matrix4, applyTransform, normalizeVector, Vector3D, applyTransformToVector, dot, createVector } from './geometry/vector3d';
+import { Geometry, Vertex } from './geometry/geometry';
 import { Viewport } from './viewport';
 import { coonsSolver } from './solvers';
-import { constrain } from './utils';
+import { constrain, bitmask } from './utils';
+import { IShape } from './shapes/shape';
+import { ILight } from './lights/light';
+import { Quaternion } from './geometry/quaternion';
+import { Constants } from './constants';
 
-const { floor, max, min, sqrt } = Math;
+const { abs, floor, max, min, sqrt, pow } = Math;
 
-export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: Matrix4, Tpre = (v: Vector3D) => v) {
-  // T: Transformation from OCS to screen coordinates
+function getInterpolationConstants(p: Vector3D[]): number[][] {
+  switch (p.length) {
+    case 3:          
+      return [
+        [ NaN, p[1].x - p[0].x, p[2].x - p[0].x, p[0].x - p[2].x ],
+        [ NaN, p[1].y - p[0].y, p[2].y - p[0].y, p[0].y - p[2].y ]
+      ];
+    case 4:
+      return [
+        [ NaN, p[1].x - p[0].x, p[3].x - p[0].x, p[0].x - p[1].x + p[2].x - p[3].x ],
+        [ NaN, p[1].y - p[0].y, p[3].y - p[0].y, p[0].y - p[1].y + p[2].y - p[3].y ]
+      ];
+    default:
+      console.log('Invalid polygon');
+      return null;
+  }
+}
+
+export function applyTexture(vp: Viewport, shape: IShape) {
   const pixels = vp.pixelBuffer.data;
 
-  // Directional light source (should not be declared here...), in screen coords.!
-  const L: Vector3D = normalizeVector({ x: -2, y: -1, z: 10 });
-
+  /*
   // Transform the vertices to the screen
   // This also applies a pre-transformation to the vertices (used for scaling of the unit sphere for example)
   const Pscr = G.vertices
@@ -31,27 +50,59 @@ export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: M
     .map(v => v.n)
     .map(v => applyTransformToVector(v, T))
     .map(normalizeVector);
+  */
 
+  const Pscr = shape.Pscr;
+  const Nscr = shape.Nscr;
+  const vertexNormals = shape.Vscr;
+  const texture = shape.texture;
+  const G = shape.geometry;
+  
   /**
-   * Generate shadow map
+   * Generate shadow
    * Based on the projective shadow algorithm - all visible faces to the light source will cast a shadow to the plane z = 0
    */
+  /*
+  // Directional light source (should not be declared here...), in screen coords.!
+  // const L1: Vector3D = normalizeVector({ x: -2, y: -1, z: 10 });
+  // Point light source (screen coords.)
+  const L2 = createVector(500, 500, 2000);
+  
   faceLoop1: for (let i = 0; i < G.faces.length; i++) {
-    const a = dot(Nscr[i], L);
-    if (a < 0) { continue faceLoop1; } // face hidden from light source
+    // Check if face is visible from directional light source (L1)
+    // const a = dot(Nscr[i], L1);
+    // if (a < 0) { continue faceLoop1; }
+
+    // Check if face is visible from point light source (L2)
     const face = G.faces[i];
     const p = face.v.map(v => Pscr[v]);
+    
+    // const a = Nscr[i].x * (p[0].x - L2.x) + Nscr[i].y * (p[0].y - L2.y) + Nscr[i].z * (p[0].z - L2.z);
+    const a = dot(Nscr[i], { x: p[0].x - L2.x, y: p[0].y - L2.y, z: p[0].z - L2.z });
+    if (a < 0) { continue faceLoop1; }
+  
     // Project the vertices in p to the plane z = 0
-    const pp = p.map<Vector3D>(v => ({
-      x: v.x - v.z * L.x / L.z,
-      y: v.y - v.z * L.y / L.z,
-      z: 0
-    }));
+
+    // For directional light source (L1) ...
+    // const pp = p.map<Vector3D>(v => ({ x: v.x - v.z * L1.x / L1.z, y: v.y - v.z * L1.y / L1.z, z: 0 }));
+
+    // For point light source (L2) ...
+    const pp = p.map(point => {
+      const v = normalizeVector(createVector(point.x - L2.x, point.y - L2.y, point.z - L2.z));
+      return {
+        x: point.x - point.z * v.x / v.z,
+        y: point.y - point.z * v.y / v.z,
+        z: 0
+      };
+    });
+
     const sxmin = floor(min(...pp.map(v => v.x)) - .5),
           sxmax = floor(max(...pp.map(v => v.x)) + .5),
           symin = floor(min(...pp.map(v => v.y)) - .5),
           symax = floor(max(...pp.map(v => v.y)) + .5);
+
     if (sxmin > vp.screen.xmax || sxmax < vp.screen.xmin || symin > vp.screen.ymax || symax < vp.screen.ymin) { continue faceLoop1; }
+    
     // Interpolation constants
     let A: number[][];
     switch (face.v.length) {
@@ -88,6 +139,7 @@ export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: M
       }
     }
   }
+  */
 
   /**
    * Scan convert all visible faces ...
@@ -227,27 +279,180 @@ export function applyTexture(vp: Viewport, G: Geometry, texture: ImageData, T: M
           destIndex = zBufferIndex << 2;
 
           /** Flat shading */
-          const nz = F[4];
           pixels[destIndex] = nz * texture.data[srcIndex];
           pixels[destIndex + 1] = nz * texture.data[srcIndex + 1];
           pixels[destIndex + 2] = nz * texture.data[srcIndex + 2];
           pixels[destIndex + 3] = 255;
 
           /** Gouraud shading, using the interpolated average intensity */
-          // pixels[destIndex] = nzi * texture.data[srcIndex];
-          // pixels[destIndex + 1] = nzi * texture.data[srcIndex + 1];
-          // pixels[destIndex + 2] = nzi * texture.data[srcIndex + 2];
-          // pixels[destIndex + 3] = 255;
+          /*
+          pixels[destIndex] = nzi * texture.data[srcIndex];
+          pixels[destIndex + 1] = nzi * texture.data[srcIndex + 1];
+          pixels[destIndex + 2] = nzi * texture.data[srcIndex + 2];
+          pixels[destIndex + 3] = 255;
+          */
 
           /** Phong shading, using the interpolated vertex normal */
           // const cosa = dot(L, { x: F[2], y: F[3], z: F[4] });
-          // const I = .2 + .8 * cosa;
-          // pixels[destIndex] = I * texture.data[srcIndex];
-          // pixels[destIndex + 1] = I * texture.data[srcIndex + 1];
-          // pixels[destIndex + 2] = I * texture.data[srcIndex + 2];
-          // pixels[destIndex + 3] = 255;
+          /*
+          const nzi = abs(F[4]);
+          const I = nzi;
+          pixels[destIndex] = I * texture.data[srcIndex];
+          pixels[destIndex + 1] = I * texture.data[srcIndex + 1];
+          pixels[destIndex + 2] = I * texture.data[srcIndex + 2];
+          pixels[destIndex + 3] = 255;
+          */
         }
       }
+    }
+  }
+}
+
+/**
+ * Scan-converts a projected polygon
+ * 
+ * @param vp current viewport
+ * @param pp projected (shadow) face
+ * @param p target face
+ * @param n target face normal
+ */
+ export function scanConvertProjectedPolygon(vp: Viewport, projectedPoly: Vector3D[], targetPoly: Vector3D[], n: Vector3D) {
+
+  /**
+   * Create a rotation quaternion to be used when creating the outward target polygon edge normals
+   */
+  // const qr = Quaternion.forAxis(n, -Constants.HALF_PI);
+  // const qr = Quaternion.forAxis({ ...n, z: -1 }, -Constants.HALF_PI);
+  const qr = Quaternion.forAxisZ(Constants.HALF_PI);  // why not neg. angle ???
+
+  /**
+   * create the target polygon edge vectors pointing out from the polygon interior
+   */
+  const N = targetPoly.length;
+  const e: Vector3D[] = [];
+
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N;
+    const v: Vector3D = normalizeVector({
+      x: targetPoly[j].x - targetPoly[i].x,
+      y: targetPoly[j].y - targetPoly[i].y,
+      // z: targetPoly[j].z - targetPoly[i].z,
+      z: 0
+    });
+    e.push(Quaternion.forVector(v).rotate(qr).toVector());
+  }
+
+  /**
+   * Test if projected polygon has some vertex inside or is completely outside the target polygon.
+   * For an N-sided polygon, an N-digit binary code is generated for each vertex of the projected polygon.
+   */
+  let inside = false;
+  let result = bitmask(N);
+
+  for (let pp of projectedPoly) {
+    const code = targetPoly
+      .map<number>((p, i) => (dot(e[i], { x: pp.x - p.x, y: pp.y - p.y, z: pp.z - p.z }) > 0) ? 1 : 0)  // bit value 1 if outside and 0 if inside
+      .reduce((result, val, i) => result | (val << i), 0);
+    inside = (code === 0);
+    if (inside) { break; }
+    result &= code;
+  }
+  
+  if (!inside) {
+    const outside = (result !== 0);
+    if (outside) {
+      return; // Outside target polygon, aborting scan conversion ...
+    }
+  }
+
+  // Inside (or crossing) the target polygon, continuing with the scan conversion ...
+
+  const sxmin = floor(min(...projectedPoly.map(v => v.x)) - .5),
+        sxmax = floor(max(...projectedPoly.map(v => v.x)) + .5),
+        symin = floor(min(...projectedPoly.map(v => v.y)) - .5),
+        symax = floor(max(...projectedPoly.map(v => v.y)) + .5);
+        
+  // if (sxmin > vp.screen.xmax || sxmax < vp.screen.xmin || symin > vp.screen.ymax || symax < vp.screen.ymin) {
+  //   return;
+  // }
+
+  // const A = getInterpolationConstants(projectedPoly);
+
+  // Obtain the edge normals for the projected polygon
+  const M = projectedPoly.length;
+  const f: Vector3D[] = [];
+
+  for (let i = 0; i < M; i++) {
+    const j = (i + 1) % M;
+    const v: Vector3D = normalizeVector({
+      x: projectedPoly[j].x - projectedPoly[i].x,
+      y: projectedPoly[j].y - projectedPoly[i].y,
+      // z: projectedPoly[j].z - projectedPoly[i].z,
+      z: 0
+    });
+    f.push(Quaternion.forVector(v).rotate(qr).toVector());
+  }
+
+  const isPointOutsideTargetPolygon = (x: number, y: number): boolean => {
+    for (let i = 0; i < targetPoly.length; i++) {
+      const outside = dot(e[i], { x: x - targetPoly[i].x, y: y - targetPoly[i].y, z: 0 }) > 0;
+      if (outside) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const isPointOutsideProjectedPolygon = (x: number, y: number): boolean => {
+    for (let i = 0; i < projectedPoly.length; i++) {
+      const outside = dot(f[i], { x: x - projectedPoly[i].x, y: y - projectedPoly[i].y, z: 0 }) < 0;  // why < 0 ???
+      if (outside) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const pixels = vp.pixelBuffer.data;
+
+  yloop: for (let sy = symin; sy <= symax; sy++) {
+    if (sy - vp.screen.ymin < 0 || sy - vp.screen.ymin > vp.pixelBuffer.height - 1) {
+      continue yloop;
+    }
+    // A[1][0] = projectedPoly[0].y - sy;
+    
+    xloop: for (let sx = sxmin; sx <= sxmax; sx++) {
+      /*
+      if ((sx - vp.screen.xmin < 0) || (sx - vp.screen.xmin > vp.pixelBuffer.width - 1) ||
+        isPointOutsideTargetPolygon(sx, sy)) {
+          continue xloop;
+      }
+      */
+      if ((sx - vp.screen.xmin < 0) || (sx - vp.screen.xmin > vp.pixelBuffer.width - 1) ||
+        isPointOutsideTargetPolygon(sx, sy) || isPointOutsideProjectedPolygon(sx, sy)) {
+          continue xloop;
+      }
+      /*
+      if ((sx - vp.screen.xmin < 0) || (sx - vp.screen.xmin > vp.pixelBuffer.width - 1)) { continue xloop; }
+      */
+      // A[0][0] = projectedPoly[0].x - sx;
+
+      const zBufferIndex = sx - vp.screen.xmin + (sy - vp.screen.ymin) * vp.pixelBuffer.width;
+
+      const destIndex = zBufferIndex << 2;
+      pixels[destIndex] = 0;
+      pixels[destIndex + 1] = 70;
+      pixels[destIndex + 2] = 0;
+      pixels[destIndex + 3] = 255;
+
+      // if (vp.zBuffer[zBufferIndex] < 0) {
+      //   vp.zBuffer[zBufferIndex] = 0;
+      //   const destIndex = zBufferIndex << 2;
+      //   pixels[destIndex] = 0;
+      //   pixels[destIndex + 1] = 70;
+      //   pixels[destIndex + 2] = 0;
+      //   pixels[destIndex + 3] = 255;
+      // }
     }
   }
 }

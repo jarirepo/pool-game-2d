@@ -1,6 +1,6 @@
 {
   "name": "pool-game-2d",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Eight-ball pool game",
   "scripts": {
     "start": "parcel src/index.html -p 3000 -o",
@@ -27,6 +27,7 @@
   "dependencies": {
     "matter-js": "^0.14.2",
     "poly-decomp": "^0.3.0",
+    "seidel": "^0.2.4",
     "stats.js": "^0.17.0"
   }
 }

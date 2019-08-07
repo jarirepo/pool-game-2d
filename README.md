@@ -1,5 +1,5 @@
 # pool-game-2d
-Implementation of the classic [8-ball][eight-ball] pool game for the HTML5 canvas.
+Experimental implementation of the classic [8-ball][eight-ball] pool game for the HTML5 canvas.
 
 - Using TypeScript, SASS with Parcel Bundler
 - Using [Matter.js][matter-js] to handle the physics
@@ -108,3 +108,4 @@ The cue and balls cast their shadows onto the pool table surface.
 [ball-textures]: https://sites.google.com/site/actividades8/texturas
 [shuffle-algorithm]: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
 [texture-mapping-canvas]: https://stackoverflow.com/questions/4774172/image-manipulation-and-texture-mapping-using-html5-canvas
+[seidel]: https://ghub.io/seidel

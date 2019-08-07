@@ -1,8 +1,9 @@
-import { IShape } from './shape';
+import { IShape, ShadowFilter } from './shape';
 import { Matrix4, Vector3D, subtractVectors, dot } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
 import { Ball } from './ball';
 import { Quaternion } from '../geometry/quaternion';
+import { ShadowCategory } from '../constants';
 
 const { abs, atan2 } = Math;
 
@@ -10,6 +11,11 @@ export class StrokeCorridor implements IShape {
 
   public readonly isStatic = true;
   public readonly modified = false;
+  public readonly canCastShadow = false;
+  public readonly shadowFilter: ShadowFilter = {
+    category: ShadowCategory.TABLE,
+    mask: 0
+  };
   public visible = false;
 
   // Object Coordinate System, relative to the pool table
@@ -81,7 +87,7 @@ export class StrokeCorridor implements IShape {
     }
   }
   
-  public render(vp: Viewport, T: Matrix4): void {
+  public render(vp: Viewport): void {
     vp.context.beginPath();
     vp.context.moveTo(this.p0.x, this.p0.y);
     vp.context.lineTo(this.p1.x, this.p1.y);

@@ -13,4 +13,11 @@ export enum CollisionCategory {
   POCKET = 0x0002,
   BALL = 0x0004,
   CUEBALL = 0x0008
-};
+}
+
+export enum ShadowCategory {
+  TABLE = 0x0001,
+  CUSHION = 0x0002,
+  BALL = 0x0004,
+  CUE = 0x0008
+}
