@@ -9,6 +9,7 @@ export interface PoolMonitorOptions {
   width?: number;
   height?: number;
   settlingThreshold?: number;
+  el?: HTMLDivElement
 }
 
 /**
@@ -39,10 +40,24 @@ export class PoolMonitor extends EventEmitter {
     this.dom.setAttribute('width', `${options.width}px`);
     this.dom.setAttribute('height', `${options.height}px`);
     this.context = this.dom.getContext('2d') as CanvasRenderingContext2D;
+
+    if (options.el) {
+      options.el.appendChild(this.dom);
+      options.el.style.visibility = 'visible';
+    }
+
     this.activity = [];
+    
     // Set up collision event handler
     Matter.Events.on(engine, 'collisionActive', this.handleCollisions.bind(this));
     this.render()
+  }
+
+  public toggleVisibility(): void {
+    if (this.options.el) {
+      const sty = this.options.el.style;
+      sty.visibility = (sty.visibility === 'visible') ? 'hidden' : 'visible';
+    }
   }
 
   public hasSettled(): boolean {
@@ -55,7 +70,7 @@ export class PoolMonitor extends EventEmitter {
   private render(time?: number) {
     this.update();
     // Plot global activity weights
-    if (this.activity.length > 1) {
+    if (this.activity.length > 1 && this.options.el && this.options.el.style.visibility === 'visible') {
       this.context.fillStyle = 'rgb(25,25,112)';
       this.context.fillRect(0, 0, this.dom.width, this.dom.height);
       this.context.save();

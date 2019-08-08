@@ -6,7 +6,7 @@ import { PoolTable } from './shapes/pool-table';
 import { Viewport } from './viewport';
 import { Scene } from './scene';
 import { Cue, CueState } from './shapes/cue';
-import { PoolMonitor } from './pool-monitor';
+import { PoolMonitor, PoolMonitorOptions } from './pool-monitor';
 import { Pocket } from './shapes/pocket';
 import { CollisionCategory } from './constants';
 import { normalizeVector } from './geometry/vector3d';
@@ -141,8 +141,12 @@ gameScene.addLight(sunLight);
 /*****************************************************************************
  * Pool monitor
  *****************************************************************************/
-const monitor = new PoolMonitor(poolTable, engine);
-document.querySelector('#monitor').appendChild(monitor.dom);
+const monitorOptions: PoolMonitorOptions = {
+  width: 96,
+  height: 48,
+  el: document.querySelector('#monitor')
+}
+const monitor = new PoolMonitor(poolTable, engine, monitorOptions);
 
 /*****************************************************************************
  * Pool table init
@@ -166,7 +170,7 @@ console.log('Scene lights:', gameScene.lights);
  * Handle keyboard events
  *****************************************************************************/
 document.body.addEventListener('keypress', (e: KeyboardEvent) => {
-  // console.log(e.key, e.keyCode);
+  console.log(e.key, e.keyCode);
   const M = gameView.mouse.position;
   switch (e.keyCode) {
     case 43:  // '+'
@@ -186,6 +190,10 @@ document.body.addEventListener('keypress', (e: KeyboardEvent) => {
     case 71:  // 'G'
     case 103: // 'g'
       gameView.toggleGrid();
+      break;
+    case 77:  // 'M'
+    case 109: // 'm'
+      monitor.toggleVisibility();
       break;
   }
 });
