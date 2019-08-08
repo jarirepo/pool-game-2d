@@ -1,6 +1,6 @@
 import { isUndefined } from 'util';
 import * as Matter from 'matter-js';
-import { Matrix4, Vector3D, WCS } from './geometry/vector3d';
+import { Matrix4, Vector3D, createWCS } from './geometry/vector3d';
 import { Scene } from './scene';
 import { solve2 } from './solvers';
 
@@ -61,7 +61,7 @@ export class Viewport {
   public shadowBuffer: ImageData;
 
   /** Current coordinate system */
-  public currentAxes: Matrix4 = WCS;
+  public currentAxes: Matrix4 = createWCS();
 
   public readonly mouse: Matter.Mouse;
 
@@ -91,6 +91,11 @@ export class Viewport {
 
     // this.pixelBuffer = this.context.createImageData(this.screen.xmax - this.screen.xmin, this.screen.ymax - this.screen.ymin);
     this.zBuffer = new Array<number>(this.width * this.height);
+
+    // Sets the clipping boundary for this viewport (this only needs to be set once)
+    this.context.beginPath();
+    this.context.rect(this.screen.xmin, this.screen.ymin, this.width, this.height);
+    this.context.clip();
 
     this.scene.on('modified', args => {
       console.log('Scene modified', args);
@@ -246,6 +251,15 @@ export class Viewport {
 
   public initZBuffer(): void {
     this.zBuffer.fill(-1e9);
+  }
+
+  /** Sets the current transform for rendering */
+  public setContextTransform(T: Matrix4): void {
+    this.context.setTransform({
+      m11: T.m00, m12: T.m01,
+      m21: T.m10, m22: T.m11,
+      m41: T.m30, m42: T.m31
+    });
   }
 
   public render(): void {

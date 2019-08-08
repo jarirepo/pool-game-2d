@@ -15,6 +15,12 @@ export class PointLight implements ILight {
     return this.active && dot(plane.n, subtractVectors(this.v, plane.p)) > 0;
   }
   
+  /**
+   * p = [x, y, z]
+   * nx * (x - x0) + ny * (y - y0) + nz * (z - z0) = 0
+   * p' = [x', y', z'] = p + d * v = [x + d * vx, y + d * vy, z + d * vz]
+   * d = - (n . (p - p0)) / (n . v)
+   */
   public castRay(p: Vector3D, plane: Plane): Vector3D {
     const v = normalizeVector(subtractVectors(p, this.v));
     const d = -dot(plane.n, subtractVectors(p, plane.p)) / dot(plane.n, v);

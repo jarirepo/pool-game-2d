@@ -29,8 +29,13 @@ export class PoolTable implements IShape {
     mask: ShadowCategory.CUE | ShadowCategory.BALL | ShadowCategory.CUSHION
   };
   width: number;
-  footSpotPos = { x: 1 / 2, y: 1 / 4 };   // ball rack position on the pool table
-  cueBallLinePos = 3 / 4;                 // cue-ball line position on the pool table
+  
+  /** Ball rack position on the pool table */
+  footSpot: Vector3D;
+  
+  /** Cue-ball line location on the pool table */
+  cueBallLinePos = 0.25;
+
   imgData: ImageData;
   boundary: Path2D;
   railCushions: RailCushion[] = [];
@@ -58,6 +63,11 @@ export class PoolTable implements IShape {
     public readonly options: Matter.IBodyDefinition
   ) {
     this.width = this.length / 2;
+    this.footSpot = {
+      x: .5 * this.width,
+      y: .75 * this.length,
+      z: 0
+    };
     this.cushionWidth = this.pocketRadius / 2;  // gives 45 degree angle
 
     const cushionRadius = this.cushionWidth * 2;  // < approx. max. 3 times the cusion width to prevent error
@@ -282,7 +292,7 @@ export class PoolTable implements IShape {
     ball.isOutside = (p.x + ball.radius < 0) || (p.x - ball.radius > this.width) || (p.y + ball.radius < 0) || (p.y - ball.radius > this.length);
     return ball.isOutside;
   }
-  
+
   public render(vp: Viewport): void {
     // Pool table surface
     vp.context.beginPath();
@@ -290,11 +300,11 @@ export class PoolTable implements IShape {
     vp.context.fill(this.boundary);
     // Foot spot (rack position)
     vp.context.beginPath();
-    vp.context.arc(0.5 * this.width, 0.75 * this.length, 12, 0, Constants.TWO_PI);
+    vp.context.arc(this.footSpot.x, this.footSpot.y, 12, 0, Constants.TWO_PI);
     vp.context.fillStyle = 'rgba(0,64,0,.8)';
     vp.context.fill();
     vp.context.beginPath();
-    vp.context.arc(0.5 * this.width, 0.75 * this.length, 6, 0, Constants.TWO_PI);
+    vp.context.arc(this.footSpot.x, this.footSpot.y, 6, 0, Constants.TWO_PI);
     vp.context.fillStyle = 'rgba(0,96,0,1)';
     vp.context.fill();
     // Cue-ball line

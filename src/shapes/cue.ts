@@ -55,7 +55,6 @@ export class Cue implements IShape {
   public visible = false;
 
   public readonly geometry: Geometry;
-  public texture: ImageData;
   
   public strokeDist = 0;
   public strokeSpeed = 0;
@@ -96,7 +95,8 @@ export class Cue implements IShape {
   constructor(
     private readonly poolTable: PoolTable,
     private readonly cueBall: Ball,
-    public readonly params: CueParams
+    public readonly params: CueParams,
+    public readonly texture: ImageData,
   ) {
     // Create a truncated cone along the z-axis
     // x = 1 corresponds to the cue's butt radius and z = 1 corresponds to the cue length
@@ -125,35 +125,14 @@ export class Cue implements IShape {
     // }
   }
 
-  init(ctx: CanvasRenderingContext2D): void {
+  init(): void {
     const T = createRotationMatrixX(-95 * Constants.D2R);
     this.ocs = mmult4(this.ocs, T);
     const target: Vector3D = { x: this.poolTable.width / 2, y: this.poolTable.length / 2, z: 100 };
     const v: Vector3D = { x: 0, y: 1, z: 0 };
     this.orient(target, v, 0);
-
-    // Create texture...
-    const w = 16;
-    const h = 256;
-    
-    ctx.clearRect(0, 0, w, h);
-
-    // Handle
-    ctx.fillStyle = 'rgb(0,0,0)'; // black
-    ctx.fillRect(0, 0, w, 30);
-    ctx.fillStyle = 'rgb(128,0,0)'; // maroon
-    ctx.fillRect(0, 30, w, h / 2 - 30);
-    // Shaft
-    ctx.fillStyle = 'rgb(245,245,220)'; // beige
-    ctx.fillRect(0, h / 2, w, h / 2);
-    // Tip
-    ctx.fillStyle = 'rgb(0,206,209)'; // dark turquoise
-    // ctx.fillRect(0, h-10, w, 10);
-    ctx.fillRect(0, h-2.56, w, 2.56);
-
-    this.texture = ctx.getImageData(0, 0, w, h);
   }
-
+  
   /** Positions the cue relative to the pool table */
   public moveTo(x: number, y: number, z: number): Cue {
     this.ocs.m30 = x;
@@ -262,9 +241,9 @@ export class Cue implements IShape {
   /** Renders a cue into a viewport's pixel buffer */
   public render(vp: Viewport): void {
     if (this.state === CueState.AIMING) {
-      this.Vscr[0].x = 0;
-      this.Vscr[0].y = 0;
-      this.Vscr[0].z = 1;
+      // this.Vscr[0].x = 0;
+      // this.Vscr[0].y = 0;
+      // this.Vscr[0].z = 1;
       applyTexture(vp, this);
     }
   }

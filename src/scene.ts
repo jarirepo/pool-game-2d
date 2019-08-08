@@ -80,19 +80,13 @@ export class Scene extends EventEmitter {
     this.emit('modified');
     return this;
   }
-  
-  /** Renders all shapes in the scene */
+
+  /** Renders all shapes in the scene into a given viewport */
   public render(vp: Viewport): void {
-    // Set viewport clipping boundary
-    vp.context.beginPath();
-    vp.context.rect(vp.screen.xmin, vp.screen.ymin, vp.width, vp.height);
-    vp.context.clip();
-
-    vp.initZBuffer();
-    
     const Tscr = vp.getTransform();
+    vp.initZBuffer();
 
-    // Compute the total transformation from OCS to screen coordinates for all visible shapes
+    // Computes the total transformation from OCS to screen coordinates for all visible shapes
     this.shapes
       .filter(shape => shape.visible)
       .forEach(shape => {
@@ -121,24 +115,17 @@ export class Scene extends EventEmitter {
         }
       });
 
-    // Render all static shapes ...
+    // Render all static shapes (in the order they were added to the scene)
     this.shapes
       .filter(shape => shape.visible && shape.isStatic)
       .forEach((shape, i) => {
-        // Compute transformation from OCS to screen coordinates and applies to the graphics context
-        // const T = mmult4(shapeData.transform.matrix, Tscr);
-        const T = shape.T;
         vp.context.save();
-        vp.context.setTransform({
-          m11: T.m00, m12: T.m01,
-          m21: T.m10, m22: T.m11,
-          m41: T.m30, m42: T.m31
-        });
+        vp.setContextTransform(shape.T);
         shape.render(vp);
         vp.context.restore();
       });
 
-    // Save the "background" graphics to the pixel buffer
+    // Saves the "background" graphics to the pixel buffer
     vp.save();
 
     // Compute the shadow map ...

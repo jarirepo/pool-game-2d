@@ -1,81 +1,15 @@
 import * as Matter from 'matter-js';
-import { Colors } from '../colors';
-import { Constants, CollisionCategory, ShadowCategory } from '../constants';
+import { CollisionCategory, ShadowCategory } from '../constants';
 import { Primitives } from '../geometry/primitives';
 import { Viewport } from '../viewport';
 import { IShape, ShadowFilter, Transform } from './shape';
 import { applyTexture } from '../shader';
-import { Vector3D, Matrix4, applyTransform, createScalingMatrix, normalizeVector } from '../geometry/vector3d';
+import { Vector3D, Matrix4, createScalingMatrix, normalizeVector } from '../geometry/vector3d';
 import { Quaternion } from '../geometry/quaternion';
 import { Geometry } from '../geometry/geometry';
 
-const ballTextureWidth = 256,
-      ballTextureHeight = 128;
-
 // Time step, assumimg 60 fps
 const dt = 16.7e-3;
-
-function createBallTexture(value: number, color: Colors.Color, ctx: CanvasRenderingContext2D): ImageData {
-  const c = `rgb(${color.r},${color.g},${color.b})`;
-  const w = ballTextureWidth;
-  const h = ballTextureHeight;
-  // const r = h / 2 - 32;
-  // const hy = (value < 9) ? 0 : 16;
-  const r = h / 6;
-  const hy = (value < 9) ? 0 : h / 6;
-  const drawText = (x: number) => {
-    ctx.beginPath();
-    ctx.arc(x, h / 2, r, 0, Constants.TWO_PI);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.font = '24pt Trebuchet MS';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#000';
-    ctx.fillText(value.toString(), x, h / 2 + 4);    
-  };
-  ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = c;
-  ctx.fillRect(0, hy, w, h - 2 * hy);
-  if (value > 0) {
-    drawText(0.75 * w);
-    drawText(0.25 * w);
-  } else {
-    ctx.beginPath();
-    ctx.arc(0.25 * w, h / 2, r / 2, 0, Constants.TWO_PI);
-    ctx.fillStyle = '#ffc0cb';  // pink
-    ctx.fill();
-  }
-  return ctx.getImageData(0, 0, w, h);
-}
-
-/*
-* Ball colors for eight-ball game:
- * 0: white (cue-ball)
- * 1: yellow, 2: blue, 3: red, 4: purple, 5: orange, 6: green, 7: brown
- * 8: black
- * 9-15: white with color stripe
- */
-const ballColors = {
-  0: Colors.WHITE,
-  1: Colors.YELLOW,
-  2: Colors.BLUE,
-  3: Colors.RED,
-  4: Colors.PURPLE,
-  5: Colors.ORANGE,
-  6: Colors.GREEN,
-  7: Colors.BROWN,
-  8: Colors.BLACK,
-  9: Colors.YELLOW,
-  10: Colors.BLUE,
-  11: Colors.RED,
-  12: Colors.PURPLE,
-  13: Colors.ORANGE,
-  14: Colors.GREEN,
-  15: Colors.BROWN
-};
 
 export class Ball implements IShape {
 
@@ -91,7 +25,6 @@ export class Ball implements IShape {
   omega = 0;
   /** Object Coordinate System (OCS), relative to the pool table */
   ocs: Matrix4;
-  texture: ImageData;
   isPocketed: boolean;
   isOutside: boolean;
   activity: number[] = [];
@@ -117,6 +50,7 @@ export class Ball implements IShape {
   constructor(
     public readonly value: number,  // Ball value 0-15
     public readonly radius: number, // Ball radius in [mm]
+    public readonly texture: ImageData,
     public readonly body: Matter.Body
   ) {
     this.geometry = Primitives.Sphere;
@@ -139,13 +73,12 @@ export class Ball implements IShape {
     }
   }
   
-  public init(ctx: CanvasRenderingContext2D): void {
+  public init(): void {
     this.omega = 0;
     this.visible = true;
     this.isPocketed = false;
     this.isOutside = false;
     this.ocs = Quaternion.createRandomRotationMatrix();
-    this.texture = createBallTexture(this.value, ballColors[this.value], ctx);
   }
 
   public moveTo(x: number, y: number, z: number): Ball {

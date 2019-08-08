@@ -12,6 +12,7 @@ import { CollisionCategory } from './constants';
 import { normalizeVector } from './geometry/vector3d';
 import { PointLight } from './lights/point-light';
 import { DirectionalLight } from './lights/directional-light';
+import { PoolGameTextures } from './poolgame-textures';
 
 const { random } = Math;
 
@@ -33,6 +34,12 @@ document.body.focus({ preventScroll: true });
 ctx.fillStyle = 'rgb(51, 51, 51)';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.globalAlpha = 1;
+
+/*****************************************************************************
+ * Create textures
+ *****************************************************************************/
+const poolGameTextures = new PoolGameTextures(document.querySelector('#textures'));
+console.log(poolGameTextures);
 
 /*****************************************************************************
  * Create Scene and Viewport
@@ -84,9 +91,9 @@ for (let i = 0; i < 16; i++) {
     };
   }
   const b = Bodies.circle(0, 0, r, options);
-  balls.push(new Ball(i, r, b));  
+  balls.push(new Ball(i, r, poolGameTextures.getBallTexture(i), b));  
 }
-balls.forEach(ball => ball.init(ctx));
+balls.forEach(ball => ball.init());
 const cueBall = balls[0];
 
 /*****************************************************************************
@@ -99,8 +106,8 @@ const poolTable = new PoolTable(rack, balls, 7 * 0.3048e3, 1.5 * ballRadius, poo
 /*****************************************************************************
  * Create the cue
  *****************************************************************************/
-const cue = new Cue(poolTable, cueBall, { length: 1500, tipRadius: 6.5, buttRadius: 15 });
-cue.init(ctx);
+const cue = new Cue(poolTable, cueBall, { length: 1500, tipRadius: 6.5, buttRadius: 15 }, poolGameTextures.getCueTexture());
+cue.init();
 
 /*****************************************************************************
  * Add the bodies for the rail cushions, pockets and balls to the physics world

@@ -1,6 +1,8 @@
 // import Delaunator from 'delaunator';
 import * as seidel from 'seidel';
 import { Vector3D, Matrix4, applyTransform, normalizeVector, normalVector, createVector, rotationDirectionXY, subtractVectors } from './vector3d';
+import { Quaternion } from './quaternion';
+import { Constants } from '../constants';
 
 const { pow } = Math;
 
@@ -52,7 +54,8 @@ function splitPoly(vertexIndices: number[], T: Triangle[] = []) {
   return T;
 }
 
-function triangulatePoly(n: number, indexOffset = 0) {
+/** Simple triangulation for convex polygons */
+function triangulatePoly(n: number, indexOffset = 0): Triangle[] {
   if (n < 3) {
     return [];
   }
@@ -77,78 +80,65 @@ export class Geometry {
     return new Geometry(vertices, faces);
     */
 
-    /*
-    // Delaunay triangulation
-    // The delaunator library takes as input a set of 2D-points but will not generate a correct triangulation
-    // for closed concave polygons.
-
-    // const points = v.map(p => [ p.x, p.y ]);
-    // const DT = Delaunator.from(points);
-    const DT = Delaunator.from(v, p => p.x, p => p.y);
-
-    // console.log('DT.coords', DT.coords);
-    // console.log('DT.triangles:', DT.triangles);
-
-    const vertices: Vertex[] = [];
-    const faces: Face[] = [];
-
-    for (let i = 0; i < DT.coords.length; i += 2) {
-      vertices.push({
-        x: DT.coords[i],
-        y: DT.coords[i + 1],
-        z: 0,
-        u: NaN,
-        v: NaN,
-        n: createVector(0, 0, 1)
-      })
-    }
-
-    let index = 0;
-    for (let i = 0; i < DT.triangles.length; i += 3, index++) {
-      faces.push({
-        v: [ DT.triangles[i], DT.triangles[i + 1], DT.triangles[i + 2] ],
-        n: createVector(0, 0, 1),
-        e: [],
-        index
-      });
-    }
-
-    // Check the orientation of the faces (they should all be CCW) ...
-    for (let face of faces) {
-      const v0: Vector3D = {
-        x: vertices[face.v[1]].x - vertices[face.v[0]].x,
-        y: vertices[face.v[1]].y - vertices[face.v[0]].y,
-        z: vertices[face.v[1]].z - vertices[face.v[0]].z,
-      };
-      const v1: Vector3D = {
-        x: vertices[face.v[2]].x - vertices[face.v[1]].x,
-        y: vertices[face.v[2]].y - vertices[face.v[1]].y,
-        z: vertices[face.v[2]].z - vertices[face.v[1]].z,
-      };
-      const d = rotationDirectionXY(v0, v1);
-      // console.log(d);
-    }
-    */
-
     // Using Seidel's algorithm for the triangulation which produces an array of 2D-vertices
     const points = [ v.map(p => [ p.x, p.y ]) ];
     const ST: { x: number, y: number }[][] = seidel(points); // triangles
-    console.log('Seidel Triangulation:', ST);
+    
+    // console.log('Seidel Triangulation:', ST);
+
     const vertices: Vertex[] = [];
     const faces: Face[] = [];
+    
+    const qr = Quaternion.forAxisZ(-Constants.HALF_PI);
 
     for (let i = 0; i < ST.length; i++) {
+
+      // Add 3 vertices
       for (let p of ST[i]) {
-        vertices.push({ x: p.x, y: p.y, z: 0, u: NaN, v: NaN, n: createVector(0, 0, 1) });
+        vertices.push({
+          x: p.x,
+          y: p.y,
+          z: 0,
+          u: NaN,
+          v: NaN,
+          n: createVector(0, 0, 1)
+        });
       }
-      const face: Face = { index: i, v: [ i * 3, i * 3 + 1, i * 3 + 2], n: createVector(0, 0, 1), e: [] };
-      faces.push(face);
-      // Check if the face has a CCW orientation
-      const v0 = subtractVectors(vertices[face.v[1]], vertices[face.v[0]]),
-            v1 = subtractVectors(vertices[face.v[2]], vertices[face.v[1]]);
+
+      // Vertex indices for the triangular face
+      const vertexIndices =  [
+        i * 3,
+        i * 3 + 1,
+        i * 3 + 2
+      ];
+
+      // Check if the face has a CCW orientation (swap the index of the 1st and 3rd vertex if needed).
+      // This assumes that the polygon is defined on the xy-plane.
+      const v0 = subtractVectors(vertices[vertexIndices[1]], vertices[vertexIndices[0]]),
+            v1 = subtractVectors(vertices[vertexIndices[2]], vertices[vertexIndices[1]]);
+      
       if (rotationDirectionXY(v0, v1) < 0) {
-        [face.v[0], face.v[2]] = [face.v[2], face.v[0]];
+        [vertexIndices[0], vertexIndices[2]] = [vertexIndices[2], vertexIndices[0]];
       }
+
+      const a = normalizeVector(subtractVectors(vertices[vertexIndices[1]], vertices[vertexIndices[0]])),
+            b = normalizeVector(subtractVectors(vertices[vertexIndices[2]], vertices[vertexIndices[1]])),
+            c = normalizeVector(subtractVectors(vertices[vertexIndices[0]], vertices[vertexIndices[2]]));
+
+      const edgeNormals: Vector3D[] = [
+        Quaternion.forVector(a).rotate(qr).toVector(),
+        Quaternion.forVector(b).rotate(qr).toVector(),
+        Quaternion.forVector(c).rotate(qr).toVector()  
+      ];
+
+      const face: Face = {
+        index: i,
+        v: vertexIndices,
+        n: createVector(0, 0, 1),
+        e: edgeNormals
+      };
+
+      faces.push(face);
     }
 
     console.log('vertices:', [...vertices.map(v => ({ ...v }))]);
@@ -169,8 +159,6 @@ export class Geometry {
 
   /** Removal of duplicate vertices and re-mapping of vertex indices */
   private reduce(): void {
-    console.log('reduce');
-
     const N = this.vertices.length;
     const indexList = this.vertices.map((_, i) => i);
     const newIndex = [ ...indexList ];

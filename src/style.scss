@@ -22,6 +22,12 @@ body {
     margin: 0;
     user-select: none;
   }
+
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  border: none;
+  border-radius: 5px;
 }
 
 #scene {
@@ -47,4 +53,8 @@ body {
   bottom: 0;
   left: 100px;
   padding: 0;
+}
+
+#textures {
+  display:  none;
 }

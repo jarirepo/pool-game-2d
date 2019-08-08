@@ -1,5 +1,5 @@
 import * as Matter from 'matter-js';
-import { Constants, ShadowCategory } from '../constants';
+import { ShadowCategory } from '../constants';
 import { Matrix4 } from '../geometry/vector3d';
 import { Viewport } from '../viewport';
 import { IShape, ShadowFilter } from './shape';
@@ -16,7 +16,7 @@ export class Pocket implements IShape {
   public readonly canCastShadow = false;
   public readonly shadowFilter: ShadowFilter = {
     category: ShadowCategory.TABLE,
-    mask: 0
+    mask: 0 // pockets do not receive any shadows
   };
   // Object Coordinate System, relative to the pool table
   public readonly ocs: Matrix4 = {
