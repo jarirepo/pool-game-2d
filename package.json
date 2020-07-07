@@ -3,7 +3,7 @@
   "version": "0.4.2",
   "description": "Eight-ball pool game",
   "scripts": {
-    "start": "parcel src/index.html -p 3000 -o",
+    "start": "parcel src/index.html -p 3000",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,7 +20,7 @@
   "devDependencies": {
     "@types/matter-js": "^0.10.2",
     "@types/stats.js": "^0.17.0",
-    "node-sass": "^4.12.0",
+    "node-sass": "^4.14.1",
     "sass": "^1.22.9",
     "typescript": "^3.5.3"
   },

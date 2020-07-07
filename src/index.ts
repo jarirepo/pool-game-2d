@@ -1,5 +1,5 @@
 import * as Matter from 'matter-js';
-import * as Stats from 'stats.js';
+import Stats from 'stats.js';
 import { Ball } from './shapes/ball';
 import { Rack } from './rack';
 import { PoolTable } from './shapes/pool-table';

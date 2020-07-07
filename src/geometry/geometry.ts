@@ -1,5 +1,5 @@
 // import Delaunator from 'delaunator';
-import * as seidel from 'seidel';
+import seidel from 'seidel';
 import { Vector3D, Matrix4, applyTransform, normalizeVector, normalVector, createVector, rotationDirectionXY, subtractVectors } from './vector3d';
 import { Quaternion } from './quaternion';
 import { Constants } from '../constants';
