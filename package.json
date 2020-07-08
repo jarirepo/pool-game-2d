@@ -18,11 +18,11 @@
   },
   "homepage": "https://github.com/jarirepo/pool-game-2d#readme",
   "devDependencies": {
-    "@types/matter-js": "^0.10.2",
+    "@types/matter-js": "^0.14.4",
     "@types/stats.js": "^0.17.0",
     "node-sass": "^4.14.1",
-    "sass": "^1.22.9",
-    "typescript": "^3.5.3"
+    "sass": "^1.26.10",
+    "typescript": "^3.9.6"
   },
   "dependencies": {
     "matter-js": "^0.14.2",
